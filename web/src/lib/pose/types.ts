@@ -11,7 +11,15 @@ export interface PoseSample {
   world: Point4[] // 33 entries
 }
 
-const round = (v: number, digits: number) => {
+/** What the camera component reports with every frame. */
+export interface FrameContext {
+  width: number
+  height: number
+  mirrored: boolean
+  model: string // e.g. "full/GPU"
+}
+
+const round =(v: number, digits: number) => {
   const f = 10 ** digits
   return Math.round(v * f) / f
 }

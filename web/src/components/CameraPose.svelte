@@ -1,15 +1,19 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte'
+  import { onDestroy, type Snippet } from 'svelte'
   import type { PoseLandmarker } from '@mediapipe/tasks-vision'
   import { createDetector, type DetectorInfo, type ModelVariant } from '../lib/pose/detector'
   import { drawPose } from '../lib/pose/draw'
-  import { posesFromResult, type PoseSample } from '../lib/pose/types'
+  import { posesFromResult, type FrameContext, type PoseSample } from '../lib/pose/types'
 
   interface Props {
     /** Called for every processed video frame with a monotonic timestamp in ms. */
-    onframe?: (tMs: number, poses: PoseSample[], size: { width: number; height: number }) => void
+    onframe?: (tMs: number, poses: PoseSample[], ctx: FrameContext) => void
+    /** Called when the camera starts or stops. */
+    onrunning?: (running: boolean) => void
+    /** Content drawn on top of the video (not mirrored), e.g. a countdown. */
+    children?: Snippet
   }
-  let { onframe }: Props = $props()
+  let { onframe, onrunning, children }: Props = $props()
 
   let video: HTMLVideoElement
   let canvas: HTMLCanvasElement
@@ -47,6 +51,7 @@
       canvas.width = video.videoWidth
       canvas.height = video.videoHeight
       status = 'running'
+      onrunning?.(true)
       lastVideoTime = -1
       raf = requestAnimationFrame(loop)
     } catch (err) {
@@ -64,7 +69,12 @@
       const poses = posesFromResult(landmarker.detectForVideo(video, now))
       persons = poses.length
       render(poses)
-      onframe?.(now, poses, { width: canvas.width, height: canvas.height })
+      onframe?.(now, poses, {
+        width: canvas.width,
+        height: canvas.height,
+        mirrored: facing === 'user',
+        model: info ? `${info.variant}/${info.delegate}` : 'unknown',
+      })
       fpsWindow.push(now)
       while (fpsWindow.length && now - fpsWindow[0] > 1000) fpsWindow.shift()
       fps = fpsWindow.length
@@ -87,7 +97,10 @@
 
   export function stop() {
     stopStream()
-    if (status === 'running') status = 'idle'
+    if (status === 'running') {
+      status = 'idle'
+      onrunning?.(false)
+    }
     canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height)
   }
 
@@ -129,9 +142,14 @@
   <p class="error">Could not start: {error}</p>
 {/if}
 
-<div class="stage" class:mirrored={facing === 'user'} class:hidden={status !== 'running'}>
-  <video bind:this={video} playsinline muted></video>
-  <canvas bind:this={canvas}></canvas>
+<div class="wrap" class:hidden={status !== 'running'}>
+  <div class="stage" class:mirrored={facing === 'user'}>
+    <video bind:this={video} playsinline muted></video>
+    <canvas bind:this={canvas}></canvas>
+  </div>
+  {#if children}
+    <div class="overlay">{@render children()}</div>
+  {/if}
 </div>
 
 <style>
@@ -148,6 +166,12 @@
     align-items: center;
     font-size: 0.9rem;
   }
+  .wrap {
+    position: relative;
+  }
+  .wrap.hidden {
+    display: none;
+  }
   .stage {
     position: relative;
     width: 100%;
@@ -155,8 +179,10 @@
     border-radius: var(--radius);
     overflow: hidden;
   }
-  .stage.hidden {
-    display: none;
+  .overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
   }
   .stage.mirrored {
     transform: scaleX(-1);
