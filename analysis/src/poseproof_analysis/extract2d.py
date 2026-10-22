@@ -1,4 +1,4 @@
-"""Run MediaPipe Pose Landmarker on a video.  >>> Felix implements this. <<<
+"""Run MediaPipe Pose Landmarker on a video.  (TODO: implement)
 
 Output (via poseproof_analysis.io.save_keypoints):
     kp2d      (T, 33, 3)  pixel x, pixel y, visibility      (NaN where no person found)

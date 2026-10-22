@@ -1,5 +1,5 @@
 /**
- * one_person: is only the tested person in the picture?            >>> Felix implements <<<
+ * one_person: is only the tested person in the picture?   (TODO: implement)
  *
  * Why: with two people the tracker can jump to the wrong one mid-test, and in a gym someone
  * walking past is common. The detector runs with numPoses = 2 so a second person shows up

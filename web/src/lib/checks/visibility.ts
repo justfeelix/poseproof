@@ -1,5 +1,5 @@
 /**
- * visibility: are the joints we measure actually visible?            >>> Felix implements <<<
+ * visibility: are the joints we measure actually visible?   (TODO: implement)
  *
  * Why: joints hidden behind the body are guessed by the model. Depth cameras like the Azure
  * Kinect show the same problem: the hip angle on the side hidden from the camera had poor

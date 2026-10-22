@@ -1,5 +1,5 @@
 /**
- * calm_start: did the person stand still before the first rep?        >>> Felix implements <<<
+ * calm_start: did the person stand still before the first rep?   (TODO: implement)
  *
  * Why: the standing posture at the start is the baseline for other checks (heel height,
  * standing hip height for rep detection). The same idea as the 14-second face baseline in

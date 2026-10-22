@@ -30,3 +30,6 @@ models/
 !.vscode/extensions.json
 .idea
 .DS_Store
+
+# Personal build plan
+GUIDE.md

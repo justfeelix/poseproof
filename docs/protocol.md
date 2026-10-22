@@ -1,64 +1,56 @@
-# Capture and measurement protocol
+# Recording protocol
 
-One session, about 45 minutes with a helper. Do not move or touch the cameras between
-calibration and the last trial; if one moves, record the stereo calibration again.
+## A. Labelled trials for the evaluation (about 1.5 h for one person)
 
-## Equipment
+**Setup.** Laptop or phone on a table or stand at about hip height, 2.5 to 3 m away,
+landscape. Even light, no bright window behind you. Fitted clothes, shoes off or flat
+shoes. Use the same model setting (`full`) for all trials and write it down.
 
-- Camera A: phone on a stand or propped up, landscape, about 3 m away, chest height.
-- Camera B: second phone or laptop webcam, 60 to 90 degrees around the person from A.
-- Checkerboard `docs/checkerboard_A4_9x6_25mm.pdf` printed at 100 %, glued flat on
-  cardboard. Measure 4 squares with a ruler (should be 100 mm) and write it down.
-- Tape measure, pen, a helper for the body measurements.
-- Fitted clothing (shorts or leggings, T-shirt), even light, plain background, whole body
-  including feet visible in both cameras.
+**Each trial.** Press Start test, stand still for about two seconds, do three squats,
+then stand until the recording ends (20 s). Download the trial right away, and note in
+`data/labels.csv` what you did, before you look at the app's verdict.
 
-## Camera settings (both cameras, same for calibration and trials)
+**Plan (front test unless noted), about 40 trials:**
 
-- Same resolution and frame rate in both, e.g. 1920x1080 at 30 fps.
-- Video stabilisation OFF (it changes the image geometry from frame to frame and breaks
-  calibration). On iPhone also turn off Action mode and avoid Cinematic mode.
-- Lock focus and exposure (iPhone: long press on the subject until "AE/AF LOCK"). No zoom,
-  use the main 1x lens.
-
-## Recording order
-
-1. **Intrinsics, camera A** (1 min): move the board slowly through the whole image, near
-   the corners and edges, tilted in different directions, 0.5 to 2 m from the lens.
-   Repeat for **camera B**. Separate files: `calib_intrinsics.mp4` per camera.
-2. **Stereo** (1 min, both cameras recording): hold the board where BOTH cameras see it
-   fully, keep it still for about 1 s, move, still again; 15 to 20 positions across the
-   space where you will stand. File: `calib_stereo.mp4` in both folders.
-3. **Trials** (both cameras recording, one file per trial, same name in both folders).
-   Start every trial with one clap, arms straight in front of you.
-   - `tpose`: T-pose, hold 5 s; then A-pose (arms 45 degrees down), hold 5 s
-   - `squat`: 5 slow bodyweight squats, 2 s down, 2 s up
-   - `reach`: 5 slow overhead arm raises (front), then 5 sideways
-   - `lunge`: 3 lunges per leg (optional)
-   - `walk`: walk a small circle in view (optional, for occlusions)
-4. **Camera baseline**: measure the distance between the two lenses with the tape.
-
-## Body measurements (helper measures, twice each)
-
-Fill `data/tape_measurements.csv` (copy of the template). Barefoot, standing upright,
-arms hanging relaxed. Find the bony landmark with your fingers first, then measure from
-landmark to landmark in a straight line (not along the skin curve).
-
-| Segment | From | To |
+| Trials | What you do | Label |
 |---|---|---|
-| Height | floor | top of head |
-| Shoulder width | left acromion (bony tip of shoulder) | right acromion |
-| Upper arm | acromion | lateral epicondyle (outer elbow bone) |
-| Forearm | lateral epicondyle | radial styloid (wrist, thumb side) |
-| Thigh | greater trochanter (bony point on the side of the hip) | lateral knee joint line |
-| Shank | lateral knee joint line | lateral malleolus (outer ankle bone) |
-| Hip width | left greater trochanter | right greater trochanter |
+| 8 | correct: calm start, three controlled squats to about parallel, heels down | valid |
+| 4 | correct, **side test** | valid |
+| 3 | camera too low or you too close, feet cut off | OUT_OF_FRAME |
+| 3 | a second person walks through behind you | MULTI_PERSON |
+| 3 | front test, but turned 30 to 45 degrees | WRONG_ORIENTATION |
+| 3 | a chair or bag hides one lower leg | JOINT_HIDDEN |
+| 3 | start squatting the moment recording starts | NO_CALM_START |
+| 3 | quarter squats only | DEPTH_NOT_REACHED |
+| 3 | heels clearly up at the bottom | HEEL_LIFT |
+| 3 | fast bouncing reps, under a second down | TOO_FAST |
+| 2 | baggy clothes or dim light (tracker stress) | label what actually happened |
 
-The difference between your two measurements is the measurement noise of the tape
-method. Report it next to the camera errors: it is the floor below which camera errors
-cannot be judged.
+Rules for labels:
+- Label what you **did**, not what the app said. If you meant to do one error but did a
+  second one by accident (e.g. heels came up during the fast reps), list both reasons.
+- `valid = 1` only with no reasons. Unsure? Write it in `note` and decide before looking
+  at results.
+- `split`: decide up front. Best: a second person's trials are `test`, yours are `tune`.
+  With only yourself: the trials of the last session are `test`.
 
-## Recording other people
+**Other people.** Only with their consent. Explain that no video is stored, only the
+landmark file, and that you will not publish their files unless they agree.
 
-Only with their written consent, explaining that video stays on your laptop and only
-derived keypoints may be published. Simplest: record only yourself for this sprint.
+## B. Two-camera reference (optional, GUIDE.md step R)
+
+Two cameras (phone and laptop, or two phones), both seeing the whole body, 60 to 90
+degrees apart, same resolution and frame rate, video stabilisation off, focus and exposure
+locked. Do not move them between calibration and the last trial.
+
+1. **Intrinsics** per camera (1 min each): move the printed checkerboard
+   (`checkerboard_A4_9x6_25mm.pdf`, printed at 100%, glued flat; check that 4 squares
+   measure 100 mm) slowly through the whole image, tilted, near the corners.
+2. **Stereo** (1 min, both recording): hold the board where both cameras see it, still for
+   about a second, 15 to 20 positions.
+3. **Trials** (both recording, same file name in both folders): one clap with straight arms
+   at the start (for synchronisation), then the trial as in part A.
+4. Measure the distance between the two lenses with a tape: the calibrated baseline must
+   match it within a few millimetres, the best single check that calibration worked.
+
+Background: OpenCV camera calibration tutorial, https://docs.opencv.org/4.x/dc/dbb/tutorial_py_calibration.html

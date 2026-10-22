@@ -1,5 +1,5 @@
 /**
- * tempo: was every rep slow enough to be controlled?                    >>> Felix implements <<<
+ * tempo: was every rep slow enough to be controlled?   (TODO: implement)
  *
  * This is also where reps are found, which depth.ts can reuse.
  *

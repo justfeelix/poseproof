@@ -1,4 +1,4 @@
-"""Two-view triangulation of 2D keypoints into metric 3D.  >>> Felix implements this. <<<
+"""Two-view triangulation of 2D keypoints into metric 3D.  (TODO: implement)
 
 The result is the reference ("pseudo ground truth") for everything else in this project:
 3D keypoints in millimetres, in the coordinate frame of camera A.

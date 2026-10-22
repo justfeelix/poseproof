@@ -1,4 +1,4 @@
-"""Camera calibration with a printed checkerboard (OpenCV).  >>> Felix implements this. <<<
+"""Camera calibration with a printed checkerboard (OpenCV).  (TODO: implement)
 
 Two stages:
 1. Intrinsics per camera: focal lengths, principal point, lens distortion (K, dist).

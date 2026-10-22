@@ -1,5 +1,5 @@
 /**
- * depth: did the squat go deep enough to be scored?                    >>> Felix implements <<<
+ * depth: did the squat go deep enough to be scored?   (TODO: implement)
  *
  * Knee flexion = 180 - jointAngleDeg(hip, knee, ankle), so 0 is a straight leg. Use world
  * coordinates (3D) so the angle does not depend on the viewing direction as much.

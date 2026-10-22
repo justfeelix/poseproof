@@ -1,5 +1,5 @@
 /**
- * stability: did the tracker follow the body without glitches?        >>> Felix implements <<<
+ * stability: did the tracker follow the body without glitches?   (TODO: implement)
  *
  * Why: bones do not change length. If the measured thigh suddenly gets 20% longer, or a
  * knee jumps 30 cm between two frames, the tracker lost the joint or swapped left and right.

@@ -1,5 +1,5 @@
 /**
- * heels: did the heels stay on the floor?                               >>> Felix implements <<<
+ * heels: did the heels stay on the floor?   (TODO: implement)
  *
  * Why: lifting the heels hides limited ankle mobility, which is exactly what a mobility
  * test wants to measure.

@@ -1,15 +1,19 @@
-# data/ (not in git)
+# data/ (local, not in git)
 
 ```
 data/
-  raw/<session>/camA/calib_intrinsics.mp4, calib_stereo.mp4, <trial>.mp4
-  raw/<session>/camB/...                      (same file names in both folders)
-  calib/<session>/camA.json, camB.json, stereo.json
-  processed/<session>/<trial>_camA_mp.npz     MediaPipe output (poselab.io format)
-  processed/<session>/<trial>_tri.npz         triangulated 3D, mm, camera-A frame
-  aistpp/cameras/, keypoints2d/, keypoints3d/ AIST++ annotations
-  tape_measurements.csv                       copy of the template, filled in
+  trials/<trial_id>.json      trial files downloaded from the app (or exported from video)
+  labels.csv                  your labels, one row per trial (copy labels.template.csv)
+  verdicts.csv                written by `npm run check-trials` in web/
+  raw/<session>/camA|camB/    videos for the optional two-camera reference (never in git)
+  calib/<session>/            calibration results (camA.json, camB.json, stereo.json)
+  processed/<session>/        MediaPipe and triangulation output (.npz)
 ```
 
-Raw video shows a person and stays local. Processed keypoints (`.npz`) contain no images;
-share them only if everyone recorded agreed.
+Trial files contain body landmarks only, no images. Still, they describe a real person's
+movement: keep other people's files local unless they agreed to publish them.
+
+`labels.csv` columns: `trial_id` (file name without .json), `person`, `split` (`tune` or
+`test`), `valid` (1 or 0), `reasons` (codes separated by `;`, empty when valid), `note`.
+Reason codes: OUT_OF_FRAME, MULTI_PERSON, WRONG_ORIENTATION, JOINT_HIDDEN,
+TRACKING_UNSTABLE, NO_CALM_START, DEPTH_NOT_REACHED, HEEL_LIFT, TOO_FAST.

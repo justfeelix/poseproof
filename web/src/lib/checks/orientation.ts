@@ -1,9 +1,10 @@
 /**
- * orientation: is the person turned the right way for this test?    >>> Felix implements <<<
+ * orientation: is the person turned the right way for this test?   (TODO: implement)
  *
  * squat_front: shoulders and hips roughly parallel to the image plane.
  * squat_side:  turned about 90 degrees, shoulder line pointing at the camera.
- * EGYM's back-of-thigh test is done rotated 90 degrees to the camera, so both cases matter.
+ * Side-on tests (e.g. for the back of the thigh) are common in mobility assessments, so both
+ * cases matter.
  *
  * Idea: in world coordinates (camera-aligned, metres) the shoulder line is
  *   s = left_shoulder - right_shoulder. Its angle to the image plane is

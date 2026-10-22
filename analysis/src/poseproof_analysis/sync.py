@@ -1,4 +1,4 @@
-"""Synchronise two videos with a clap.  >>> Felix implements this. <<<
+"""Synchronise two videos with a clap.  (TODO: implement)
 
 At the start of every trial, clap once with straight arms in front of the body. In both
 videos, the clap is the frame where the two wrists are closest together. The difference
