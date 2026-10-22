@@ -1,0 +1,32 @@
+# Node / web
+node_modules/
+web/dist/
+*.local
+.vercel
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# Data: video and personal recordings stay local
+data/*
+!data/README.md
+!data/labels.template.csv
+*.mp4
+*.mov
+*.MOV
+*.avi
+*.webm
+
+# Models and downloads
+models/
+*.task
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store

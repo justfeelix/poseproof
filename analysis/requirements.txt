@@ -1,0 +1,8 @@
+numpy>=1.26
+scipy>=1.11
+pandas>=2.1
+matplotlib>=3.8
+opencv-python>=4.10,<5
+mediapipe>=0.10.14
+tqdm>=4.66
+pytest>=8.0
