@@ -33,3 +33,7 @@ models/
 
 # Personal build plan
 GUIDE.md
+
+# Local project agent (personal)
+poseproof-overseer.md
+.claude/
