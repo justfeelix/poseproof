@@ -7,7 +7,7 @@
   import type { FrameContext, PoseSample } from '../lib/pose/types'
   import { downloadTrial } from '../lib/trial/io'
   import { TrialRecorder } from '../lib/trial/recorder'
-  import { TEST_LABELS, type Frame, type TestKind, type Trial } from '../lib/trial/types'
+  import type { Frame, TestKind, Trial } from '../lib/trial/types'
 
   type Phase = 'ready' | 'countdown' | 'recording' | 'done'
 
@@ -29,6 +29,9 @@
   let lastCtx: FrameContext | null = null
   let buffer: Frame[] = []
   let lastLive = 0
+
+  const busy = $derived(phase === 'countdown' || phase === 'recording')
+  const liveReady = $derived(!!live && live.results.every((r) => r.status !== 'fail'))
 
   function startTest() {
     trial = null
@@ -73,7 +76,6 @@
       if (elapsedS >= durationS) finish()
       return
     }
-    // Live guidance while setting up: rolling one-second window.
     buffer.push({ t: tMs, poses })
     while (buffer.length && tMs - buffer[0].t > LIVE_WINDOW_MS) buffer.shift()
     if (tMs - lastLive > LIVE_EVERY_MS) {
@@ -96,125 +98,226 @@
   onDestroy(() => clearInterval(timer))
 </script>
 
-<div class="setup">
-  <label>
-    Test
-    <select bind:value={test} disabled={phase === 'countdown' || phase === 'recording'}>
-      {#each Object.entries(TEST_LABELS) as [id, label] (id)}
-        <option value={id}>{label}</option>
-      {/each}
-    </select>
-  </label>
-  <label>
-    Duration
-    <select bind:value={durationS} disabled={phase === 'countdown' || phase === 'recording'}>
-      <option value={10}>10 s</option>
-      <option value={20}>20 s</option>
-      <option value={30}>30 s</option>
-    </select>
-  </label>
-  {#if phase === 'recording'}
-    <button onclick={finish}>Stop early</button>
-  {:else}
-    <button class="primary" onclick={startTest} disabled={!cameraOn || phase === 'countdown'}>
-      {phase === 'done' ? 'Record again' : 'Start test'}
-    </button>
-  {/if}
-  {#if !cameraOn}<span class="muted">Start the camera first.</span>{/if}
+<div class="head">
+  <div>
+    <h1>Squat test</h1>
+    <p class="quiet">Stand still for two seconds, then do three slow squats.</p>
+  </div>
+  <div class="controls">
+    <div class="seg" role="radiogroup" aria-label="Test">
+      <button role="radio" aria-checked={test === 'squat_front'} disabled={busy} onclick={() => (test = 'squat_front')}>
+        Facing the camera
+      </button>
+      <button role="radio" aria-checked={test === 'squat_side'} disabled={busy} onclick={() => (test = 'squat_side')}>
+        Side-on
+      </button>
+    </div>
+    <label>
+      <span class="sr">Recording length</span>
+      <select bind:value={durationS} disabled={busy}>
+        <option value={10}>10 seconds</option>
+        <option value={20}>20 seconds</option>
+        <option value={30}>30 seconds</option>
+      </select>
+    </label>
+    {#if phase === 'recording'}
+      <button class="btn dark" onclick={finish}>Stop recording</button>
+    {:else}
+      <button class="btn go" onclick={startTest} disabled={!cameraOn || phase === 'countdown'}>
+        {phase === 'done' ? 'Record again' : 'Start test'}
+      </button>
+    {/if}
+  </div>
 </div>
 
 <div class="layout">
-  <div class="camera">
+  <div>
     <CameraPose {onframe} {onrunning}>
       {#if phase === 'countdown'}
-        <div class="banner big">{countdown}</div>
+        <div class="count num" aria-live="assertive">{countdown}</div>
       {:else if phase === 'recording'}
-        <div class="banner rec">● REC {elapsedS.toFixed(1)} / {durationS} s</div>
+        <div class="rec">
+          <span class="dot" aria-hidden="true"></span>
+          <span class="num">{elapsedS.toFixed(1)} of {durationS} s</span>
+        </div>
       {/if}
     </CameraPose>
   </div>
 
   <aside>
     {#if phase === 'done' && trial && verdict}
-      <ReportCard {verdict} />
-      <div class="actions">
-        <button onclick={() => trial && downloadTrial(trial)}>Download trial (JSON)</button>
-      </div>
-      <p class="muted small">
-        {trial.frames.length} frames · {((trial.frames.at(-1)?.t ?? 0) / 1000).toFixed(1)} s · {trial.model}
+      {#key trial.id}
+        <ReportCard {verdict} />
+      {/key}
+      <button class="btn save" onclick={() => trial && downloadTrial(trial)}>Save trial as JSON</button>
+      <p class="quiet small">
+        {trial.frames.length} frames over {((trial.frames.at(-1)?.t ?? 0) / 1000).toFixed(1)} s, {trial.model} model.
+        Only landmarks are saved, never images.
       </p>
-    {:else if phase === 'recording'}
-      <div class="panel">
-        <strong>Recording</strong>
-        <p class="muted">Stand still for two seconds, then do three slow squats.</p>
+    {:else if phase === 'recording' || phase === 'countdown'}
+      <div class="panel dark">
+        <h3>Recording</h3>
+        <p>Two seconds still. Three slow squats. Then stand until the timer ends.</p>
       </div>
     {:else if cameraOn && live}
-      <div class="panel">
-        <strong>Before you start</strong>
-        <p class="muted small">Live check of the last second.</p>
-        <CheckList results={live.results} />
+      <div class="panel dark">
+        <h3>{liveReady ? 'Ready when you are' : 'Not ready yet'}</h3>
+        <p>{liveReady ? 'The camera has a clear view. Press Start test.' : 'Fix the red point first.'}</p>
+        <div class="live">
+          <CheckList results={live.results} grouped={false} onDark />
+        </div>
       </div>
     {:else}
-      <div class="panel muted">
-        <p>1. Start the camera and step back until your whole body is visible.</p>
-        <p>2. Wait until the setup checks are green.</p>
-        <p>3. Press “Start test”, stand still, then do three slow squats.</p>
-      </div>
+      <ol class="steps">
+        <li><p><strong>Start the camera</strong> and step back until head and feet are inside the corner marks.</p></li>
+        <li><p><strong>Wait until no setup point is red.</strong> Each one says what to fix.</p></li>
+        <li><p><strong>Start the test.</strong> Three judges decide whether it counts.</p></li>
+      </ol>
     {/if}
   </aside>
 </div>
 
 <style>
-  .setup {
+  .head {
     display: flex;
-    gap: 0.75rem;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1rem 2rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+  }
+  h1 {
+    font-size: var(--step-4);
+  }
+  .head p {
+    margin-top: 0.35rem;
+  }
+  .controls {
+    display: flex;
+    gap: 0.6rem;
     align-items: center;
     flex-wrap: wrap;
-    margin-bottom: 0.75rem;
   }
-  label {
-    display: flex;
-    gap: 0.4rem;
-    align-items: center;
-    font-size: 0.9rem;
+  .seg {
+    display: inline-flex;
+    padding: 3px;
+    border-radius: 999px;
+    background: var(--plate);
+  }
+  .seg button {
+    border: 0;
+    background: transparent;
+    min-height: 2.4rem;
+    padding: 0 1rem;
+    border-radius: 999px;
+    font-weight: 600;
+    color: var(--steel);
+    transition: background-color 160ms var(--ease), color 160ms var(--ease);
+  }
+  .seg button[aria-checked='true'] {
+    background: var(--ink);
+    color: var(--chalk);
+  }
+  .seg button:disabled {
+    cursor: not-allowed;
   }
   .layout {
     display: grid;
-    grid-template-columns: 1fr minmax(260px, 320px);
-    gap: 1rem;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+    gap: 1.25rem;
     align-items: start;
   }
-  @media (max-width: 860px) {
+  @media (max-width: 900px) {
     .layout {
       grid-template-columns: 1fr;
     }
   }
-  aside p {
-    margin: 0.4rem 0;
+  .panel.dark {
+    background: var(--ink);
+    color: #f2f2f2;
+    padding: 1.5rem;
+    border-radius: 4px;
+  }
+  .panel h3 {
+    font-size: var(--step-2);
+    color: var(--lit);
+  }
+  .panel p {
+    margin-top: 0.4rem;
+    color: #c9c9c9;
+  }
+  .live {
+    margin-top: 1rem;
+  }
+  .steps {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .steps li {
+    counter-increment: step;
+    display: grid;
+    grid-template-columns: 2.25rem 1fr;
+    gap: 0.75rem;
+  }
+  .steps li::before {
+    content: counter(step);
+    font-size: var(--step-3);
+    font-weight: 850;
+    font-stretch: 75%;
+    line-height: 1;
+    color: var(--signal);
+  }
+  .save {
+    margin-top: 1rem;
   }
   .small {
-    font-size: 0.85rem;
+    margin-top: 0.5rem;
+    font-size: var(--step--1);
   }
-  .actions {
-    margin-top: 0.75rem;
-  }
-  .banner {
+  .count {
     position: absolute;
-    top: 0.75rem;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.6);
-    color: #fff;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-size: clamp(6rem, 22vw, 14rem);
+    font-weight: 900;
+    color: var(--lit);
+    text-shadow: 0 4px 30px rgba(0, 0, 0, 0.6);
+  }
+  .rec {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.35rem 0.8rem;
     border-radius: 999px;
-    padding: 0.3rem 0.9rem;
-    font-weight: 600;
+    background: rgba(0, 0, 0, 0.7);
+    font-weight: 650;
   }
-  .banner.big {
-    top: 40%;
-    font-size: 4rem;
-    padding: 0.5rem 1.6rem;
+  .dot {
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 50%;
+    background: var(--nolift);
+    animation: blink 1s steps(2, start) infinite;
   }
-  .banner.rec {
-    color: #fecaca;
+  @keyframes blink {
+    to {
+      visibility: hidden;
+    }
+  }
+  .sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
   }
 </style>

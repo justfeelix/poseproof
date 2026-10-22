@@ -1,21 +1,45 @@
+/*
+ * PoseProof visual system
+ *
+ * Idea: a squat test is judged like a lift on a competition platform. Three judges
+ * (setup, tracking, movement) give a white light for a good test and a red one for no
+ * test. The page around it stays quiet and Swiss: white, ink, one signal orange for
+ * actions and joints.
+ *
+ * Type: Archivo (variable, width 62-125%). Wide and heavy for the wordmark and verdicts,
+ * condensed for numbers, normal width for reading.
+ */
 :root {
-  --bg: #f6f7f9;
-  --panel: #ffffff;
-  --text: #16181d;
-  --muted: #5b6270;
-  --line: #e2e5ea;
-  --accent: #0f766e;
-  --accent-soft: #e6f4f2;
-  --pass: #15803d;
-  --fail: #b91c1c;
-  --warn: #b45309;
-  --todo: #6b7280;
-  --radius: 10px;
-  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  color: var(--text);
-  background: var(--bg);
+  --chalk: #ffffff; /* page */
+  --plate: #ededeb; /* secondary surfaces, like light rubber flooring */
+  --ink: #141414; /* text, stage frame */
+  --steel: #666666; /* secondary text (5.7:1 on white) */
+  --line: #d6d6d6; /* dividers */
+  --signal: #f0640f; /* actions, joints, focus */
+  --signal-press: #d15405;
+  --nolift: #e3262b; /* red light */
+  --lit: #ffffff; /* white light */
+  --stage: #000000; /* camera stage */
+
+  --font: 'Archivo Variable', 'Helvetica Neue', Arial, sans-serif;
+  --step--1: 0.8125rem; /* 13 */
+  --step-0: 1rem; /* 16 */
+  --step-1: 1.25rem; /* 20 */
+  --step-2: 1.5625rem; /* 25 */
+  --step-3: 1.9375rem; /* 31 */
+  --step-4: 2.4375rem; /* 39 */
+  --step-5: 3.0625rem; /* 49 */
+
+  --ease: cubic-bezier(0.2, 0.7, 0.1, 1);
+
+  font-family: var(--font);
+  font-size: 100%;
   line-height: 1.5;
+  color: var(--ink);
+  background: var(--chalk);
+  font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 * {
@@ -26,44 +50,108 @@ body {
   margin: 0;
 }
 
+h1,
+h2,
+h3 {
+  font-stretch: 112%;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
+}
+
+/* ---------------------------------------------------------------- controls */
+
 button {
   font: inherit;
   cursor: pointer;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  color: var(--text);
-  border-radius: 8px;
-  padding: 0.5rem 0.9rem;
+  color: inherit;
 }
 
-button.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0 1.25rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--chalk);
+  font-weight: 650;
+  font-stretch: 100%;
+  transition:
+    transform 120ms var(--ease),
+    background-color 120ms var(--ease);
 }
 
-button:disabled {
-  opacity: 0.5;
+.btn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+}
+
+.btn.go {
+  background: var(--signal);
+  border-color: var(--signal);
+  color: var(--ink);
+}
+
+.btn.go:hover:not(:disabled) {
+  background: var(--signal-press);
+  border-color: var(--signal-press);
+}
+
+.btn.dark {
+  background: var(--ink);
+  color: var(--chalk);
+}
+
+.btn:disabled {
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
-select,
-input {
+select {
   font: inherit;
+  font-weight: 600;
+  min-height: 2.75rem;
+  padding: 0 2rem 0 0.9rem;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: var(--chalk)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23141414' stroke-width='1.6' fill='none'/%3E%3C/svg%3E")
+    no-repeat right 0.85rem center;
+  appearance: none;
+  color: var(--ink);
 }
 
-.panel {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 1rem 1.25rem;
+:focus-visible {
+  outline: 3px solid var(--signal);
+  outline-offset: 2px;
 }
 
-.muted {
-  color: var(--muted);
+.num {
+  font-variant-numeric: tabular-nums;
+  font-stretch: 75%;
 }
 
-code {
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 0.9em;
+.quiet {
+  color: var(--steel);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
 }

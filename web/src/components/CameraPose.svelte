@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy, type Snippet } from 'svelte'
   import type { PoseLandmarker } from '@mediapipe/tasks-vision'
+  import Stage from './Stage.svelte'
   import { createDetector, type DetectorInfo, type ModelVariant } from '../lib/pose/detector'
   import { drawPose } from '../lib/pose/draw'
   import { posesFromResult, type FrameContext, type PoseSample } from '../lib/pose/types'
@@ -10,7 +11,7 @@
     onframe?: (tMs: number, poses: PoseSample[], ctx: FrameContext) => void
     /** Called when the camera starts or stops. */
     onrunning?: (running: boolean) => void
-    /** Content drawn on top of the video (not mirrored), e.g. a countdown. */
+    /** Content on top of the running video (not mirrored), e.g. a countdown. */
     children?: Snippet
   }
   let { onframe, onrunning, children }: Props = $props()
@@ -25,6 +26,7 @@
   let facing = $state<'user' | 'environment'>('user')
   let variant = $state<ModelVariant>('full')
   let info = $state<DetectorInfo | null>(null)
+  let aspect = $state(16 / 9)
 
   let landmarker: PoseLandmarker | null = null
   let stream: MediaStream | null = null
@@ -50,13 +52,17 @@
       await video.play()
       canvas.width = video.videoWidth
       canvas.height = video.videoHeight
+      aspect = video.videoWidth / video.videoHeight
       status = 'running'
       onrunning?.(true)
       lastVideoTime = -1
       raf = requestAnimationFrame(loop)
     } catch (err) {
       status = 'error'
-      error = err instanceof Error ? err.message : String(err)
+      const msg = err instanceof Error ? err.message : String(err)
+      error = /denied|NotAllowed/i.test(msg)
+        ? 'Camera access was blocked. Allow the camera for this site in your browser settings, then try again.'
+        : `The camera or the pose model could not start: ${msg}`
       stopStream()
     }
   }
@@ -110,94 +116,124 @@
   })
 </script>
 
-<div class="controls">
-  {#if status === 'running'}
-    <button onclick={stop}>Stop camera</button>
-  {:else}
-    <button class="primary" onclick={start} disabled={status === 'loading'}>
-      {status === 'loading' ? 'Loading model…' : 'Start camera'}
-    </button>
-    <label>
-      Camera
-      <select bind:value={facing}>
-        <option value="user">front</option>
-        <option value="environment">back</option>
-      </select>
-    </label>
-    <label>
-      Model
-      <select bind:value={variant}>
-        <option value="lite">lite (fast)</option>
-        <option value="full">full</option>
-        <option value="heavy">heavy (accurate)</option>
-      </select>
-    </label>
-  {/if}
-  {#if status === 'running'}
-    <span class="muted">{fps} fps · {persons} {persons === 1 ? 'person' : 'persons'} · {info?.variant}/{info?.delegate}</span>
-  {/if}
-</div>
+<Stage mirrored={facing === 'user'} {aspect}>
+  {#snippet media()}
+    <video bind:this={video} playsinline muted class:hidden={status !== 'running'}></video>
+    <canvas bind:this={canvas}></canvas>
+  {/snippet}
 
-{#if status === 'error'}
-  <p class="error">Could not start: {error}</p>
+  {#if status === 'running'}
+    {@render children?.()}
+  {:else}
+    <div class="intro">
+      <h2>Step into the frame</h2>
+      <p>
+        Put the camera at hip height, two to three metres away. The pose model runs in this browser; no
+        video leaves your device.
+      </p>
+      <div class="row">
+        <button class="btn go" onclick={start} disabled={status === 'loading'}>
+          {status === 'loading' ? 'Loading the pose model' : 'Start camera'}
+        </button>
+        <label>
+          <span class="sr">Camera</span>
+          <select bind:value={facing}>
+            <option value="user">Front camera</option>
+            <option value="environment">Back camera</option>
+          </select>
+        </label>
+        <label>
+          <span class="sr">Pose model</span>
+          <select bind:value={variant}>
+            <option value="lite">Lite model, fastest</option>
+            <option value="full">Full model</option>
+            <option value="heavy">Heavy model, most accurate</option>
+          </select>
+        </label>
+      </div>
+      {#if status === 'error'}<p class="error" role="alert">{error}</p>{/if}
+    </div>
+  {/if}
+</Stage>
+
+{#if status === 'running'}
+  <div class="bar">
+    <button class="btn" onclick={stop}>Stop camera</button>
+    <dl>
+      <div><dt>Frame rate</dt><dd class="num">{fps} fps</dd></div>
+      <div><dt>People in view</dt><dd class="num">{persons}</dd></div>
+      <div><dt>Model</dt><dd>{info?.variant} on {info?.delegate}</dd></div>
+    </dl>
+  </div>
 {/if}
 
-<div class="wrap" class:hidden={status !== 'running'}>
-  <div class="stage" class:mirrored={facing === 'user'}>
-    <video bind:this={video} playsinline muted></video>
-    <canvas bind:this={canvas}></canvas>
-  </div>
-  {#if children}
-    <div class="overlay">{@render children()}</div>
-  {/if}
-</div>
-
 <style>
-  .controls {
+  .hidden {
+    visibility: hidden;
+  }
+  .intro {
+    position: absolute;
+    inset: 0;
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 0.9rem;
+    padding: clamp(1.25rem, 4vw, 2.5rem);
+    background: var(--stage);
+  }
+  .intro h2 {
+    font-size: clamp(var(--step-3), 5vw, var(--step-5));
+    font-stretch: 125%;
+    font-weight: 850;
+    color: var(--lit);
+  }
+  .intro p {
+    color: #c9c9c9;
+    max-width: 46ch;
+  }
+  .row {
+    display: flex;
     flex-wrap: wrap;
-    margin-bottom: 0.75rem;
-  }
-  label {
-    display: flex;
-    gap: 0.4rem;
+    gap: 0.6rem;
     align-items: center;
-    font-size: 0.9rem;
   }
-  .wrap {
-    position: relative;
+  .row select {
+    background-color: transparent;
+    color: #f2f2f2;
+    border-color: #3a3a3a;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23f2f2f2' stroke-width='1.6' fill='none'/%3E%3C/svg%3E");
   }
-  .wrap.hidden {
-    display: none;
-  }
-  .stage {
-    position: relative;
-    width: 100%;
-    background: #111;
-    border-radius: var(--radius);
-    overflow: hidden;
-  }
-  .overlay {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-  }
-  .stage.mirrored {
-    transform: scaleX(-1);
-  }
-  video,
-  canvas {
-    display: block;
-    width: 100%;
-  }
-  canvas {
-    position: absolute;
-    inset: 0;
-    height: 100%;
+  .row option {
+    color: var(--ink);
   }
   .error {
-    color: var(--fail);
+    color: #ff8a8d !important;
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.75rem;
+  }
+  dl {
+    display: flex;
+    gap: 1.5rem;
+    margin: 0;
+  }
+  dt {
+    font-size: var(--step--1);
+    color: var(--steel);
+  }
+  dd {
+    margin: 0;
+    font-weight: 650;
+  }
+  .sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
   }
 </style>

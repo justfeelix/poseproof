@@ -1,92 +1,115 @@
 <script lang="ts">
   import CheckList from './CheckList.svelte'
+  import JudgeLights from './JudgeLights.svelte'
   import type { Verdict } from '../lib/checks'
 
   interface Props {
     verdict: Verdict
-    /** Optional: what the trial was built or labelled to show, for comparison. */
+    /** What the trial was built or labelled to show, for comparison (replay). */
     expected?: string
   }
   let { verdict, expected }: Props = $props()
   let details = $state(false)
 
-  const headline = $derived(
-    !verdict.valid ? 'Not valid' : verdict.complete ? 'Valid test' : 'No problems found so far',
+  const todo = $derived(verdict.results.filter((r) => r.status === 'todo').length)
+  const headline = $derived(!verdict.valid ? 'No test' : todo === 0 ? 'Good test' : 'No faults yet')
+  const sub = $derived(
+    !verdict.valid
+      ? verdict.feedback.length === 1
+        ? 'One thing to fix before this result counts.'
+        : `${verdict.feedback.length} things to fix before this result counts.`
+      : todo === 0
+        ? `All ${verdict.results.length} checks passed. This result can be trusted.`
+        : `${todo} of ${verdict.results.length} checks are not built yet, so this is not a full verdict.`,
   )
+  const EXPECTED: Record<string, string> = {
+    CLEAN: 'a good test',
+    OUT_OF_FRAME: 'feet out of frame',
+    MULTI_PERSON: 'a second person',
+    WRONG_ORIENTATION: 'wrong orientation',
+    TRACKING_UNSTABLE: 'tracker glitches',
+    NO_CALM_START: 'no calm start',
+    DEPTH_NOT_REACHED: 'a shallow squat',
+    HEEL_LIFT: 'heels lifting',
+    TOO_FAST: 'reps that are too fast',
+  }
 </script>
 
-<div class="card" class:valid={verdict.valid} class:invalid={!verdict.valid}>
-  <div class="head">
-    <strong>{headline}</strong>
+<section class="board" class:no={!verdict.valid} aria-live="polite">
+  <JudgeLights results={verdict.results} />
+
+  <div class="verdict">
+    <h2>{headline}</h2>
+    <p>{sub}</p>
     {#if expected}
-      <span class="muted expected">expected: <code>{expected}</code></span>
+      <p class="expected">This sample was built to show {EXPECTED[expected] ?? expected}.</p>
     {/if}
   </div>
 
   {#if verdict.feedback.length}
-    <ul class="feedback">
+    <ol class="fixes">
       {#each verdict.feedback as f (f)}<li>{f}</li>{/each}
-    </ul>
+    </ol>
   {/if}
 
-  {#if !verdict.complete}
-    <p class="muted note">Some checks are not implemented yet, so this result is incomplete.</p>
-  {/if}
-
-  <CheckList results={verdict.results} {details} />
+  <div class="checks">
+    <CheckList results={verdict.results} {details} onDark />
+  </div>
 
   <label class="toggle">
     <input type="checkbox" bind:checked={details} />
-    show measured values
+    Show measured values and limits
   </label>
-</div>
+</section>
 
 <style>
-  .card {
-    border: 1px solid var(--line);
-    border-left-width: 5px;
-    border-radius: var(--radius);
-    padding: 1rem;
-    background: var(--panel);
+  .board {
+    background: var(--ink);
+    color: #f2f2f2;
+    padding: 1.5rem;
+    border-radius: 4px;
   }
-  .card.valid {
-    border-left-color: var(--pass);
+  .verdict {
+    margin: 1.5rem 0 1rem;
   }
-  .card.invalid {
-    border-left-color: var(--fail);
+  h2 {
+    font-size: var(--step-4);
+    font-stretch: 125%;
+    font-weight: 850;
+    color: var(--lit);
   }
-  .head {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    margin-bottom: 0.5rem;
-    font-size: 1.15rem;
+  .no h2 {
+    color: var(--nolift);
   }
-  .valid .head strong {
-    color: var(--pass);
-  }
-  .invalid .head strong {
-    color: var(--fail);
+  .verdict p {
+    margin-top: 0.4rem;
+    color: #c9c9c9;
+    max-width: 34ch;
   }
   .expected {
-    font-size: 0.8rem;
+    font-size: var(--step--1);
+    color: #9a9a9a !important;
   }
-  .feedback {
-    margin: 0 0 0.75rem;
-    padding-left: 1.1rem;
+  .fixes {
+    margin: 0 0 1.25rem;
+    padding: 0.9rem 1rem 0.9rem 2.1rem;
+    background: #1f1f1f;
+    border-left: 4px solid var(--nolift);
+    font-weight: 600;
   }
-  .note {
-    font-size: 0.85rem;
-    margin: 0 0 0.75rem;
+  .fixes li + li {
+    margin-top: 0.35rem;
   }
   .toggle {
     display: flex;
-    gap: 0.4rem;
+    gap: 0.5rem;
     align-items: center;
-    margin-top: 0.75rem;
-    font-size: 0.85rem;
-    color: var(--muted);
+    margin-top: 1rem;
+    font-size: var(--step--1);
+    color: #9a9a9a;
+    cursor: pointer;
+  }
+  .toggle input {
+    accent-color: var(--signal);
   }
 </style>

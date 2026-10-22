@@ -1,87 +1,146 @@
 <script lang="ts">
   import { CHECK_BY_ID, type CheckResult } from '../lib/checks'
+  import { JUDGES } from '../lib/checks/judges'
 
   interface Props {
     results: CheckResult[]
-    /** Show measured value and threshold (developer view). */
+    /** Show measured value and limit next to each check. */
     details?: boolean
+    /** Group rows under the three judges. */
+    grouped?: boolean
+    /** Light text for use on the black stage. */
+    onDark?: boolean
   }
-  let { results, details = false }: Props = $props()
+  let { results, details = false, grouped = true, onDark = false }: Props = $props()
 
-  const ICON: Record<CheckResult['status'], string> = { pass: '✓', fail: '✕', warn: '!', todo: '…' }
+  const STATUS = { pass: 'good', fail: 'no', warn: 'check', todo: 'not built yet' } as const
 
-  function fmt(r: CheckResult): string {
+  const groups = $derived(
+    grouped
+      ? JUDGES.map((j) => ({ name: j.name, rows: results.filter((r) => j.checks.includes(r.id)) })).filter((g) => g.rows.length)
+      : [{ name: '', rows: results }],
+  )
+
+  function measured(r: CheckResult): string {
     if (r.value === undefined) return ''
-    const v = Math.abs(r.value) >= 10 ? r.value.toFixed(0) : r.value.toFixed(3)
-    const t = r.threshold === undefined ? '' : ` (limit ${r.threshold})`
-    return `${v} ${r.unit ?? ''}${t}`
+    const v = Math.abs(r.value) >= 10 ? r.value.toFixed(0) : Math.abs(r.value) >= 1 ? r.value.toFixed(2) : r.value.toFixed(3)
+    return r.threshold === undefined ? v : `${v} / ${r.threshold}`
   }
 </script>
 
-<ul>
-  {#each results as r (r.id)}
-    <li class={r.status}>
-      <span class="icon" aria-label={r.status}>{ICON[r.status]}</span>
-      <div>
-        <span class="label">{CHECK_BY_ID[r.id].label}</span>
-        {#if r.status === 'todo'}
-          <span class="sub">not implemented yet</span>
-        {:else if details && (r.value !== undefined || r.detail)}
-          <span class="sub">{fmt(r)}{r.detail ? ` · ${r.detail}` : ''}</span>
-        {/if}
-      </div>
-    </li>
+<div class="list" class:onDark>
+  {#each groups as g (g.name)}
+    {#if g.name}<h4>{g.name}</h4>{/if}
+    <ul>
+      {#each g.rows as r (r.id)}
+        <li class={r.status}>
+          <span class="mark" aria-hidden="true"></span>
+          <span class="label">
+            {CHECK_BY_ID[r.id].label}
+            <span class="sr">: {STATUS[r.status]}</span>
+          </span>
+          {#if r.status === 'todo'}
+            <span class="value quiet">to build</span>
+          {:else if details}
+            <span class="value num" title={r.detail ?? ''}>{measured(r)} {r.unit ?? ''}</span>
+          {/if}
+          {#if details && r.detail && r.status !== 'todo'}
+            <span class="detail">{r.detail}</span>
+          {/if}
+        </li>
+      {/each}
+    </ul>
   {/each}
-</ul>
+</div>
 
 <style>
+  h4 {
+    margin: 1rem 0 0.35rem;
+    font-size: var(--step--1);
+    font-weight: 700;
+    color: var(--steel);
+  }
+  .list > h4:first-child {
+    margin-top: 0;
+  }
   ul {
     list-style: none;
     margin: 0;
     padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
   }
   li {
-    display: flex;
-    gap: 0.6rem;
-    align-items: flex-start;
-  }
-  li div {
-    display: flex;
-    flex-direction: column;
-    line-height: 1.3;
-  }
-  .icon {
-    flex: 0 0 1.4rem;
-    height: 1.4rem;
-    border-radius: 999px;
-    display: inline-flex;
+    display: grid;
+    grid-template-columns: 0.9rem 1fr auto;
     align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: #fff;
+    column-gap: 0.7rem;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid var(--line);
   }
-  .pass .icon {
-    background: var(--pass);
+  li:last-child {
+    border-bottom: 0;
   }
-  .fail .icon {
-    background: var(--fail);
+  .mark {
+    width: 0.9rem;
+    height: 0.9rem;
+    border-radius: 50%;
+    border: 2px solid var(--ink);
   }
-  .warn .icon {
-    background: var(--warn);
+  .pass .mark {
+    background: var(--ink);
   }
-  .todo .icon {
-    background: var(--todo);
+  .fail .mark {
+    background: var(--nolift);
+    border-color: var(--nolift);
+  }
+  .warn .mark {
+    background: var(--signal);
+    border-color: var(--signal);
+  }
+  .todo .mark {
+    border-style: dashed;
+    border-color: #a5a5a5;
   }
   .todo .label {
-    color: var(--muted);
+    color: var(--steel);
   }
-  .sub {
-    font-size: 0.8rem;
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
+  .fail .label {
+    font-weight: 650;
+  }
+  .value {
+    font-size: var(--step--1);
+    text-align: right;
+    white-space: nowrap;
+  }
+  .detail {
+    grid-column: 2 / -1;
+    font-size: var(--step--1);
+    color: var(--steel);
+  }
+
+  .onDark h4 {
+    color: #9a9a9a;
+  }
+  .onDark li {
+    border-bottom-color: #2b2b2b;
+    color: #f2f2f2;
+  }
+  .onDark .mark {
+    border-color: #f2f2f2;
+  }
+  .onDark .pass .mark {
+    background: var(--lit);
+  }
+  .onDark .todo .label,
+  .onDark .quiet,
+  .onDark .detail {
+    color: #9a9a9a;
+  }
+
+  .sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
   }
 </style>

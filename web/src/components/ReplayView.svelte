@@ -44,71 +44,104 @@
       selected = null
       expected = undefined
     } catch (err) {
-      error = `${file.name}: ${err instanceof Error ? err.message : String(err)}`
+      error = `${file.name} could not be opened: ${err instanceof Error ? err.message : String(err)}.`
     }
   }
 </script>
 
+<div class="head">
+  <h1>Replay</h1>
+  <p class="quiet">
+    Recorded trials, stored as body landmarks only. Pick one and see how the three judges decide.
+  </p>
+</div>
+
 <div class="layout">
-  <aside>
-    <h3>Samples</h3>
+  <nav class="heats" aria-label="Sample trials">
     <ul>
       {#each samples as s (s.file)}
         <li>
-          <button class:active={selected === s.file} onclick={() => pick(s)}>
-            <strong>{s.title}</strong>
-            <span class="muted">{s.description}</span>
-            {#if s.synthetic}<span class="tag">synthetic</span>{/if}
+          <button class:active={selected === s.file} aria-current={selected === s.file} onclick={() => pick(s)}>
+            <span class="t">{s.title}</span>
+            <span class="d">{s.description}</span>
           </button>
         </li>
       {/each}
     </ul>
-    <label class="open">
-      <span>Open your own trial (.json)</span>
+    {#if samples.some((s) => s.synthetic)}
+      <p class="note quiet">
+        These samples are synthetic stick figures with one built-in fault each. Real recordings follow.
+      </p>
+    {/if}
+    <label class="open btn">
+      Open a saved trial
       <input type="file" accept="application/json,.json" onchange={openFile} />
     </label>
-  </aside>
+  </nav>
 
-  <section>
-    {#if error}<p class="error">{error}</p>{/if}
+  <section class="player">
+    {#if error}<p class="error" role="alert">{error}</p>{/if}
     {#if trial}
-      <div class="meta muted">
-        <code>{trial.id}</code> · {TEST_LABELS[trial.test]} · {trial.frames.length} frames · {trial.model}
+      <div class="meta">
+        <span>{TEST_LABELS[trial.test]}</span>
+        <span class="quiet num">{trial.frames.length} frames</span>
       </div>
       <TrialPlayer {trial} />
-      {#if verdict}
-        <div class="report"><ReportCard {verdict} {expected} /></div>
-      {/if}
     {:else if !error}
-      <p class="muted">Pick a sample or open a trial file.</p>
+      <p class="quiet">Pick a sample, or open a trial you saved from the live test.</p>
     {/if}
   </section>
+
+  <div class="board">
+    {#if verdict && trial}
+      {#key trial.id + (selected ?? '')}
+        <ReportCard {verdict} {expected} />
+      {/key}
+    {/if}
+  </div>
 </div>
 
 <style>
+  .head {
+    margin-bottom: 1.25rem;
+  }
+  h1 {
+    font-size: var(--step-4);
+  }
+  .head p {
+    margin-top: 0.35rem;
+    max-width: 60ch;
+  }
   .layout {
     display: grid;
-    grid-template-columns: minmax(220px, 300px) 1fr;
+    grid-template-columns: 220px minmax(0, 1fr) minmax(280px, 340px);
     gap: 1.25rem;
+    align-items: start;
   }
-  @media (max-width: 800px) {
+  @media (max-width: 1100px) {
+    .layout {
+      grid-template-columns: 220px minmax(0, 1fr);
+    }
+    .board {
+      grid-column: 2;
+    }
+  }
+  @media (max-width: 720px) {
     .layout {
       grid-template-columns: 1fr;
     }
-    .layout section {
-      order: -1; /* player first on phones */
+    .board {
+      grid-column: auto;
     }
-  }
-  h3 {
-    margin: 0 0 0.5rem;
+    .player {
+      order: -1;
+    }
   }
   ul {
     list-style: none;
     margin: 0;
     padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
+    border-top: 2px solid var(--ink);
   }
   li button {
     width: 100%;
@@ -116,40 +149,58 @@
     display: flex;
     flex-direction: column;
     gap: 0.1rem;
-    position: relative;
+    padding: 0.7rem 0.6rem;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    background: transparent;
+    transition: background-color 140ms var(--ease);
+  }
+  li button:hover {
+    background: var(--plate);
   }
   li button.active {
-    border-color: var(--accent);
-    background: var(--accent-soft);
+    background: var(--ink);
+    color: var(--chalk);
   }
-  li button span.muted {
-    font-size: 0.85rem;
+  .t {
+    font-weight: 700;
   }
-  .tag {
-    position: absolute;
-    top: 0.45rem;
-    right: 0.6rem;
-    font-size: 0.7rem;
-    color: var(--muted);
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    padding: 0 0.4rem;
+  .d {
+    font-size: var(--step--1);
+    color: var(--steel);
+    line-height: 1.35;
+  }
+  .active .d {
+    color: #bdbdbd;
+  }
+  .note {
+    margin-top: 0.75rem;
+    font-size: var(--step--1);
   }
   .open {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
     margin-top: 1rem;
-    font-size: 0.9rem;
+    position: relative;
+    cursor: pointer;
+  }
+  .open input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .open:focus-within {
+    outline: 3px solid var(--signal);
+    outline-offset: 2px;
   }
   .meta {
+    display: flex;
+    justify-content: space-between;
     margin-bottom: 0.5rem;
-    font-size: 0.9rem;
+    font-weight: 650;
   }
   .error {
-    color: var(--fail);
-  }
-  .report {
-    margin-top: 1rem;
+    color: var(--nolift);
+    font-weight: 600;
+    margin-bottom: 0.75rem;
   }
 </style>
