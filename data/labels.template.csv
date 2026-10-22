@@ -1,0 +1,4 @@
+trial_id,person,split,valid,reasons,note
+2026-10-24T10-31-05_squat_front,felix,tune,1,,good reference trial
+2026-10-24T10-33-40_squat_front,felix,tune,0,HEEL_LIFT,heels up on reps 2 and 3
+2026-10-24T10-36-12_squat_front,friend1,test,0,OUT_OF_FRAME;NO_CALM_START,camera too low; started at once
