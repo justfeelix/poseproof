@@ -3,13 +3,24 @@
   import ReplayView from './components/ReplayView.svelte'
 
   type View = 'live' | 'replay' | 'about'
-  let view = $state<View>('live')
 
   const tabs: { id: View; label: string }[] = [
     { id: 'live', label: 'Live test' },
     { id: 'replay', label: 'Replay' },
     { id: 'about', label: 'How it works' },
   ]
+
+  // The view lives in the URL hash, so /#replay can be shared as a direct link to the demo.
+  const fromHash = (): View => {
+    const h = location.hash.slice(1)
+    return tabs.some((t) => t.id === h) ? (h as View) : 'live'
+  }
+  let view = $state<View>(fromHash())
+
+  function go(v: View) {
+    view = v
+    history.replaceState(null, '', `#${v}`)
+  }
 </script>
 
 <header>
@@ -22,7 +33,7 @@
   </div>
   <nav>
     {#each tabs as tab (tab.id)}
-      <button class:active={view === tab.id} onclick={() => (view = tab.id)}>{tab.label}</button>
+      <button class:active={view === tab.id} onclick={() => go(tab.id)}>{tab.label}</button>
     {/each}
   </nav>
 </header>

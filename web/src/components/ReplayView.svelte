@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte'
+  import ReportCard from './ReportCard.svelte'
   import TrialPlayer from './TrialPlayer.svelte'
+  import { evaluateTrial } from '../lib/checks'
   import { parseTrial } from '../lib/trial/io'
   import { loadSample, loadSampleIndex, type SampleEntry } from '../lib/trial/samples'
   import { TEST_LABELS, type Trial } from '../lib/trial/types'
@@ -9,6 +11,9 @@
   let selected = $state<string | null>(null)
   let trial = $state<Trial | null>(null)
   let error = $state('')
+  let expected = $state<string | undefined>(undefined)
+
+  const verdict = $derived(trial ? evaluateTrial(trial) : null)
 
   onMount(async () => {
     try {
@@ -24,6 +29,7 @@
     try {
       trial = await loadSample(entry)
       selected = entry.file
+      expected = entry.expected
     } catch (err) {
       error = err instanceof Error ? err.message : String(err)
     }
@@ -36,6 +42,7 @@
     try {
       trial = parseTrial(await file.text())
       selected = null
+      expected = undefined
     } catch (err) {
       error = `${file.name}: ${err instanceof Error ? err.message : String(err)}`
     }
@@ -69,6 +76,9 @@
         <code>{trial.id}</code> · {TEST_LABELS[trial.test]} · {trial.frames.length} frames · {trial.model}
       </div>
       <TrialPlayer {trial} />
+      {#if verdict}
+        <div class="report"><ReportCard {verdict} {expected} /></div>
+      {/if}
     {:else if !error}
       <p class="muted">Pick a sample or open a trial file.</p>
     {/if}
@@ -84,6 +94,9 @@
   @media (max-width: 800px) {
     .layout {
       grid-template-columns: 1fr;
+    }
+    .layout section {
+      order: -1; /* player first on phones */
     }
   }
   h3 {
@@ -135,5 +148,8 @@
   }
   .error {
     color: var(--fail);
+  }
+  .report {
+    margin-top: 1rem;
   }
 </style>

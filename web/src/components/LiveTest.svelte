@@ -1,12 +1,18 @@
 <script lang="ts">
   import { onDestroy } from 'svelte'
   import CameraPose from './CameraPose.svelte'
+  import CheckList from './CheckList.svelte'
+  import ReportCard from './ReportCard.svelte'
+  import { evaluateLive, evaluateTrial, type Verdict } from '../lib/checks'
   import type { FrameContext, PoseSample } from '../lib/pose/types'
   import { downloadTrial } from '../lib/trial/io'
   import { TrialRecorder } from '../lib/trial/recorder'
-  import { TEST_LABELS, type TestKind, type Trial } from '../lib/trial/types'
+  import { TEST_LABELS, type Frame, type TestKind, type Trial } from '../lib/trial/types'
 
   type Phase = 'ready' | 'countdown' | 'recording' | 'done'
+
+  const LIVE_WINDOW_MS = 1000 // live guidance looks at the last second
+  const LIVE_EVERY_MS = 300
 
   let cameraOn = $state(false)
   let phase = $state<Phase>('ready')
@@ -15,13 +21,18 @@
   let countdown = $state(0)
   let elapsedS = $state(0)
   let trial = $state<Trial | null>(null)
+  let verdict = $state<Verdict | null>(null)
+  let live = $state<Verdict | null>(null)
 
   const recorder = new TrialRecorder()
   let timer: ReturnType<typeof setInterval> | undefined
   let lastCtx: FrameContext | null = null
+  let buffer: Frame[] = []
+  let lastLive = 0
 
   function startTest() {
     trial = null
+    verdict = null
     phase = 'countdown'
     countdown = 3
     timer = setInterval(() => {
@@ -50,19 +61,31 @@
 
   function finish() {
     trial = recorder.stop()
+    verdict = trial ? evaluateTrial(trial) : null
     phase = 'done'
   }
 
   function onframe(tMs: number, poses: PoseSample[], ctx: FrameContext) {
     lastCtx = ctx
-    if (phase !== 'recording') return
-    recorder.push(tMs, poses)
-    elapsedS = recorder.elapsed / 1000
-    if (elapsedS >= durationS) finish()
+    if (phase === 'recording') {
+      recorder.push(tMs, poses)
+      elapsedS = recorder.elapsed / 1000
+      if (elapsedS >= durationS) finish()
+      return
+    }
+    // Live guidance while setting up: rolling one-second window.
+    buffer.push({ t: tMs, poses })
+    while (buffer.length && tMs - buffer[0].t > LIVE_WINDOW_MS) buffer.shift()
+    if (tMs - lastLive > LIVE_EVERY_MS) {
+      lastLive = tMs
+      live = evaluateLive(buffer, test)
+    }
   }
 
   function onrunning(running: boolean) {
     cameraOn = running
+    buffer = []
+    live = null
     if (!running && phase !== 'done') {
       clearInterval(timer)
       recorder.stop()
@@ -93,33 +116,53 @@
   {#if phase === 'recording'}
     <button onclick={finish}>Stop early</button>
   {:else}
-    <button class="primary" onclick={startTest} disabled={!cameraOn || phase === 'countdown'}>Start test</button>
+    <button class="primary" onclick={startTest} disabled={!cameraOn || phase === 'countdown'}>
+      {phase === 'done' ? 'Record again' : 'Start test'}
+    </button>
   {/if}
   {#if !cameraOn}<span class="muted">Start the camera first.</span>{/if}
 </div>
 
-<CameraPose {onframe} {onrunning}>
-  {#if phase === 'countdown'}
-    <div class="banner big">{countdown}</div>
-  {:else if phase === 'recording'}
-    <div class="banner rec">● REC {elapsedS.toFixed(1)} / {durationS} s</div>
-  {/if}
-</CameraPose>
-
-{#if phase === 'done' && trial}
-  <div class="result panel">
-    <div>
-      <strong>Trial recorded</strong>
-      <span class="muted">
-        {trial.frames.length} frames · {((trial.frames.at(-1)?.t ?? 0) / 1000).toFixed(1)} s · {trial.model}
-      </span>
-    </div>
-    <div class="actions">
-      <button onclick={() => trial && downloadTrial(trial)}>Download trial (JSON)</button>
-      <button onclick={startTest} disabled={!cameraOn}>Record again</button>
-    </div>
+<div class="layout">
+  <div class="camera">
+    <CameraPose {onframe} {onrunning}>
+      {#if phase === 'countdown'}
+        <div class="banner big">{countdown}</div>
+      {:else if phase === 'recording'}
+        <div class="banner rec">● REC {elapsedS.toFixed(1)} / {durationS} s</div>
+      {/if}
+    </CameraPose>
   </div>
-{/if}
+
+  <aside>
+    {#if phase === 'done' && trial && verdict}
+      <ReportCard {verdict} />
+      <div class="actions">
+        <button onclick={() => trial && downloadTrial(trial)}>Download trial (JSON)</button>
+      </div>
+      <p class="muted small">
+        {trial.frames.length} frames · {((trial.frames.at(-1)?.t ?? 0) / 1000).toFixed(1)} s · {trial.model}
+      </p>
+    {:else if phase === 'recording'}
+      <div class="panel">
+        <strong>Recording</strong>
+        <p class="muted">Stand still for two seconds, then do three slow squats.</p>
+      </div>
+    {:else if cameraOn && live}
+      <div class="panel">
+        <strong>Before you start</strong>
+        <p class="muted small">Live check of the last second.</p>
+        <CheckList results={live.results} />
+      </div>
+    {:else}
+      <div class="panel muted">
+        <p>1. Start the camera and step back until your whole body is visible.</p>
+        <p>2. Wait until the setup checks are green.</p>
+        <p>3. Press “Start test”, stand still, then do three slow squats.</p>
+      </div>
+    {/if}
+  </aside>
+</div>
 
 <style>
   .setup {
@@ -134,6 +177,26 @@
     gap: 0.4rem;
     align-items: center;
     font-size: 0.9rem;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr minmax(260px, 320px);
+    gap: 1rem;
+    align-items: start;
+  }
+  @media (max-width: 860px) {
+    .layout {
+      grid-template-columns: 1fr;
+    }
+  }
+  aside p {
+    margin: 0.4rem 0;
+  }
+  .small {
+    font-size: 0.85rem;
+  }
+  .actions {
+    margin-top: 0.75rem;
   }
   .banner {
     position: absolute;
@@ -153,21 +216,5 @@
   }
   .banner.rec {
     color: #fecaca;
-  }
-  .result {
-    margin-top: 1rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-  }
-  .result div:first-child {
-    display: flex;
-    flex-direction: column;
-  }
-  .actions {
-    display: flex;
-    gap: 0.5rem;
   }
 </style>
