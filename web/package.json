@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json && tsc -p tsconfig.scripts.json",
     "test": "vitest run --passWithNoTests",
-    "make-samples": "tsx scripts/make-samples.ts"
+    "make-samples": "tsx scripts/make-samples.ts",
+    "check-trials": "tsx scripts/check-trials.ts"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "1.1.1"
