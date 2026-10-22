@@ -7,8 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
-    "test": "vitest run --passWithNoTests"
+    "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json && tsc -p tsconfig.scripts.json",
+    "test": "vitest run --passWithNoTests",
+    "make-samples": "tsx scripts/make-samples.ts"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "1.1.1"
@@ -19,6 +20,7 @@
     "@types/node": "^24.19.2",
     "svelte": "^5.57.2",
     "svelte-check": "^4.7.7",
+    "tsx": "^4.23.15",
     "typescript": "~6.0.3",
     "vite": "^8.3.4",
     "vitest": "^5.0.5"

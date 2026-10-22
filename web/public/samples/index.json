@@ -1,0 +1,65 @@
+[
+  {
+    "file": "synthetic_clean.json",
+    "title": "Good squat",
+    "description": "Three controlled reps after a calm start.",
+    "expected": "CLEAN",
+    "synthetic": true
+  },
+  {
+    "file": "synthetic_out_of_frame.json",
+    "title": "Feet cut off",
+    "description": "The camera is too low or too close; the feet leave the image.",
+    "expected": "OUT_OF_FRAME",
+    "synthetic": true
+  },
+  {
+    "file": "synthetic_multi_person.json",
+    "title": "Someone walks in",
+    "description": "A second person enters the frame halfway through.",
+    "expected": "MULTI_PERSON",
+    "synthetic": true
+  },
+  {
+    "file": "synthetic_wrong_orientation.json",
+    "title": "Turned away",
+    "description": "The front test is done turned about 40 degrees away from the camera.",
+    "expected": "WRONG_ORIENTATION",
+    "synthetic": true
+  },
+  {
+    "file": "synthetic_tracking_unstable.json",
+    "title": "Tracker glitches",
+    "description": "The left knee jumps in some frames, like a tracking failure.",
+    "expected": "TRACKING_UNSTABLE",
+    "synthetic": true
+  },
+  {
+    "file": "synthetic_no_calm_start.json",
+    "title": "No calm start",
+    "description": "Squatting starts immediately, with no standing baseline.",
+    "expected": "NO_CALM_START",
+    "synthetic": true
+  },
+  {
+    "file": "synthetic_depth_not_reached.json",
+    "title": "Too shallow",
+    "description": "Reps stop at about 45 degrees of knee flexion.",
+    "expected": "DEPTH_NOT_REACHED",
+    "synthetic": true
+  },
+  {
+    "file": "synthetic_heel_lift.json",
+    "title": "Heels lift",
+    "description": "Heels come about 5 cm off the floor at the bottom.",
+    "expected": "HEEL_LIFT",
+    "synthetic": true
+  },
+  {
+    "file": "synthetic_too_fast.json",
+    "title": "Too fast",
+    "description": "Each rep takes well under a second.",
+    "expected": "TOO_FAST",
+    "synthetic": true
+  }
+]

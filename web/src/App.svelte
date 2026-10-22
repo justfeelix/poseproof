@@ -1,5 +1,6 @@
 <script lang="ts">
   import LiveTest from './components/LiveTest.svelte'
+  import ReplayView from './components/ReplayView.svelte'
 
   type View = 'live' | 'replay' | 'about'
   let view = $state<View>('live')
@@ -36,7 +37,8 @@
   {:else if view === 'replay'}
     <section class="panel">
       <h2>Replay</h2>
-      <p class="muted">Play back recorded trials (landmarks only, no video).</p>
+      <p class="muted">Recorded trials, landmarks only (no video).</p>
+      <ReplayView />
     </section>
   {:else}
     <section class="panel">
