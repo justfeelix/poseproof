@@ -12,7 +12,7 @@ landmarks are kept, and only if you download them.
 > tooling and the first check are done; the remaining checks and the evaluation on real
 > recordings are being built now. Results below are filled in once measured.
 
-**Live demo:** _link after the first Vercel deploy_ · direct link to the demo trials: `/#replay`
+**Live demo:** [PoseProof](https://poseproof.vercel.app/) · direct link to the demo trials: `/#replay`
 
 ## Why
 
