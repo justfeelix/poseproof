@@ -10,6 +10,9 @@
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
     "test": "vitest run --passWithNoTests"
   },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "1.1.1"
+  },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@tsconfig/svelte": "^5.0.8",

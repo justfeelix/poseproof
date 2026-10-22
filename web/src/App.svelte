@@ -1,4 +1,6 @@
 <script lang="ts">
+  import CameraPose from './components/CameraPose.svelte'
+
   type View = 'live' | 'replay' | 'about'
   let view = $state<View>('live')
 
@@ -28,7 +30,8 @@
   {#if view === 'live'}
     <section class="panel">
       <h2>Live test</h2>
-      <p class="muted">Camera view and checks come in the next steps.</p>
+      <p class="muted">Stand 2 to 3 m from the camera so your whole body is visible.</p>
+      <CameraPose />
     </section>
   {:else if view === 'replay'}
     <section class="panel">
