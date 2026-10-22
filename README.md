@@ -43,6 +43,11 @@ training plan.
 | heels | heels lift | heel height relative to the toes vs baseline |
 | tempo | reps too fast | descent time per rep from a hysteresis rep detector |
 
+The checks are grouped under three judges, as on a lifting platform: setup (the first four),
+tracking (stability, calm start) and movement (depth, heels, tempo). Each judge shows a
+white light for good or a red light for no, and the trial counts only with three white
+lights.
+
 Every check reduces a trial to one measured number and compares it with a threshold in
 [`web/src/lib/checks/config.ts`](web/src/lib/checks/config.ts). The same TypeScript code
 runs in the app, in the tests and in the offline evaluation.
