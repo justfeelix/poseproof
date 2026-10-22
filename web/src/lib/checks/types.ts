@@ -36,6 +36,11 @@ export interface CheckResult {
   unit?: string
   /** Short technical explanation for developers, e.g. "left knee hidden in 34% of frames". */
   detail?: string
+  /**
+   * Optional: when the problem happened, as [start, end] in ms of trial time. The review
+   * timeline draws these and lets the user jump there. Build them with spansOf() in util.ts.
+   */
+  spans?: [number, number][]
 }
 
 export interface CheckContext {

@@ -13,7 +13,7 @@
 import { LM, type LandmarkName } from '../pose/landmarks'
 import { decide } from './result'
 import type { CheckDef } from './types'
-import { primaryPose } from './util'
+import { primaryPose, spansOf } from './util'
 
 /** Head, hands and feet: the extremes of the body. */
 const REQUIRED: LandmarkName[] = [
@@ -35,23 +35,29 @@ export const framing: CheckDef = {
 
     let inside = 0
     const misses = new Map<LandmarkName, number>()
+    const bad: boolean[] = []
     for (const frame of frames) {
       const p = primaryPose(frame)
-      if (!p) continue
-      let all = true
-      for (const name of REQUIRED) {
-        const [x, y] = p.image[LM[name]]
-        if (x < margin || x > 1 - margin || y < margin || y > 1 - margin) {
-          all = false
-          misses.set(name, (misses.get(name) ?? 0) + 1)
+      let all = p !== null
+      if (p) {
+        for (const name of REQUIRED) {
+          const [x, y] = p.image[LM[name]]
+          if (x < margin || x > 1 - margin || y < margin || y > 1 - margin) {
+            all = false
+            misses.set(name, (misses.get(name) ?? 0) + 1)
+          }
         }
       }
       if (all) inside++
+      bad.push(!all)
     }
 
     const share = inside / frames.length
     const worst = [...misses.entries()].sort((a, b) => b[1] - a[1])[0]
     const detail = worst ? `${worst[0]} outside in ${Math.round((100 * worst[1]) / frames.length)}% of frames` : undefined
-    return decide('framing', share >= minFrameFraction, share, minFrameFraction, 'share of frames', detail)
+    return {
+      ...decide('framing', share >= minFrameFraction, share, minFrameFraction, 'share of frames', detail),
+      spans: spansOf(frames, bad),
+    }
   },
 }

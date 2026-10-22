@@ -3,7 +3,7 @@ import type { Point4, PoseSample } from '../pose/types'
 import { syntheticSquat } from '../synthetic/squat'
 import {
   angleBetweenDeg, compact, fraction, jointAngleDeg, median, movingAverage, primaryPose,
-  quantile, robustCv, seconds, std, track,
+  quantile, robustCv, seconds, spansOf, std, track,
 } from './util'
 
 const poseAt = (x0: number, size: number): PoseSample => {
@@ -26,6 +26,17 @@ describe('persons and series', () => {
     const { values, times } = compact(hip, seconds(trial.frames))
     expect(values).toHaveLength(27)
     expect(times).toHaveLength(27)
+  })
+})
+
+describe('spansOf', () => {
+  it('merges consecutive flagged frames into time spans', () => {
+    const frames = [0, 100, 200, 300, 400, 500].map((t) => ({ t, poses: [] }))
+    expect(spansOf(frames, [false, true, true, false, true, true])).toEqual([
+      [100, 200],
+      [400, 500],
+    ])
+    expect(spansOf(frames, [true, false, false, false, false, false], 50)).toEqual([])
   })
 })
 

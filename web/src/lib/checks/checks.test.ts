@@ -54,6 +54,14 @@ describe.each(CHECKS.map((c) => c.id))('check %s', (id) => {
   })
 })
 
+describe('spans', () => {
+  it('framing reports when the feet were out of the picture', () => {
+    const r = run('framing', SYNTHETIC_CASES.OUT_OF_FRAME)
+    expect(r.spans?.length).toBeGreaterThan(0)
+    expect(run('framing', SYNTHETIC_CASES.CLEAN).spans).toEqual([])
+  })
+})
+
 describe('verdict', () => {
   it('lists the reason and feedback of every failed check', () => {
     const v = evaluateTrial(syntheticSquat(SYNTHETIC_CASES.OUT_OF_FRAME))

@@ -47,6 +47,26 @@ export function track(frames: Frame[], name: LandmarkName, space: 'world' | 'ima
   })
 }
 
+/**
+ * Turn a per-frame flag into time spans [start, end] in ms, e.g. the frames where the feet
+ * were outside the image. Runs shorter than minMs are dropped (single-frame noise).
+ */
+export function spansOf(frames: Frame[], flags: boolean[], minMs = 0): [number, number][] {
+  const out: [number, number][] = []
+  let start = -1
+  for (let i = 0; i <= frames.length; i++) {
+    const on = i < frames.length && flags[i]
+    if (on && start < 0) start = i
+    if (!on && start >= 0) {
+      const t0 = frames[start].t
+      const t1 = frames[i - 1].t
+      if (t1 - t0 >= minMs) out.push([t0, t1])
+      start = -1
+    }
+  }
+  return out
+}
+
 /** Frame times in seconds. */
 export function seconds(frames: Frame[]): number[] {
   return frames.map((f) => f.t / 1000)
