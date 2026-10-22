@@ -7,8 +7,9 @@
     verdict: Verdict
     /** What the trial was built or labelled to show, for comparison (replay). */
     expected?: string
+    onjump?: (ms: number) => void
   }
-  let { verdict, expected }: Props = $props()
+  let { verdict, expected, onjump }: Props = $props()
   let details = $state(false)
 
   const todo = $derived(verdict.results.filter((r) => r.status === 'todo').length)
@@ -16,11 +17,11 @@
   const sub = $derived(
     !verdict.valid
       ? verdict.feedback.length === 1
-        ? 'One thing to fix before this result counts.'
-        : `${verdict.feedback.length} things to fix before this result counts.`
+        ? '1 thing to fix'
+        : `${verdict.feedback.length} things to fix`
       : todo === 0
-        ? `All ${verdict.results.length} checks passed. This result can be trusted.`
-        : `${todo} of ${verdict.results.length} checks are not built yet, so this is not a full verdict.`,
+        ? `${verdict.results.length} of ${verdict.results.length} checks passed`
+        : `${verdict.results.length - todo} passed, ${todo} not built yet`,
   )
   const EXPECTED: Record<string, string> = {
     CLEAN: 'a good test',
@@ -42,7 +43,7 @@
     <h2>{headline}</h2>
     <p>{sub}</p>
     {#if expected}
-      <p class="expected">This sample was built to show {EXPECTED[expected] ?? expected}.</p>
+      <p class="expected">Sample built to show {EXPECTED[expected] ?? expected}</p>
     {/if}
   </div>
 
@@ -53,12 +54,12 @@
   {/if}
 
   <div class="checks">
-    <CheckList results={verdict.results} {details} onDark />
+    <CheckList results={verdict.results} {details} {onjump} onDark />
   </div>
 
   <label class="toggle">
     <input type="checkbox" bind:checked={details} />
-    Show measured values and limits
+    Measured values
   </label>
 </section>
 

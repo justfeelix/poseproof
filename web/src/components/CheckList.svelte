@@ -10,8 +10,10 @@
     grouped?: boolean
     /** Light text for use on the black stage. */
     onDark?: boolean
+    /** Called when a row with time spans is clicked (jump to the problem). */
+    onjump?: (ms: number) => void
   }
-  let { results, details = false, grouped = true, onDark = false }: Props = $props()
+  let { results, details = false, grouped = true, onDark = false, onjump }: Props = $props()
 
   const STATUS = { pass: 'good', fail: 'no', warn: 'check', todo: 'not built yet' } as const
 
@@ -35,10 +37,18 @@
       {#each g.rows as r (r.id)}
         <li class={r.status}>
           <span class="mark" aria-hidden="true"></span>
-          <span class="label">
-            {CHECK_BY_ID[r.id].label}
-            <span class="sr">: {STATUS[r.status]}</span>
-          </span>
+          {#if onjump && r.spans?.length}
+            <button class="label jump" onclick={() => onjump(r.spans![0][0])} title="Jump to where it happened">
+              {CHECK_BY_ID[r.id].label}
+              <span class="sr">: {STATUS[r.status]}, jump to where it happened</span>
+              <span class="when num" aria-hidden="true">{(r.spans[0][0] / 1000).toFixed(1)} s</span>
+            </button>
+          {:else}
+            <span class="label">
+              {CHECK_BY_ID[r.id].label}
+              <span class="sr">: {STATUS[r.status]}</span>
+            </span>
+          {/if}
           {#if r.status === 'todo'}
             <span class="value quiet">to build</span>
           {:else if details}
@@ -105,6 +115,25 @@
   }
   .fail .label {
     font-weight: 650;
+  }
+  .jump {
+    all: unset;
+    cursor: pointer;
+    display: inline-flex;
+    gap: 0.5rem;
+    align-items: baseline;
+    text-decoration: underline;
+    text-decoration-color: rgba(227, 38, 43, 0.6);
+    text-underline-offset: 0.2em;
+  }
+  .jump:focus-visible {
+    outline: 3px solid var(--signal);
+    outline-offset: 2px;
+  }
+  .when {
+    font-size: var(--step--1);
+    color: #ff8a8d;
+    text-decoration: none;
   }
   .value {
     font-size: var(--step--1);

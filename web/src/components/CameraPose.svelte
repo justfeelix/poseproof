@@ -127,27 +127,24 @@
   {:else}
     <div class="intro">
       <h2>Step into the frame</h2>
-      <p>
-        Put the camera at hip height, two to three metres away. The pose model runs in this browser; no
-        video leaves your device.
-      </p>
+      <p>Pose tracking runs on this device. No video is uploaded.</p>
       <div class="row">
         <button class="btn go" onclick={start} disabled={status === 'loading'}>
-          {status === 'loading' ? 'Loading the pose model' : 'Start camera'}
+          {status === 'loading' ? 'Loading model' : 'Start camera'}
         </button>
         <label>
           <span class="sr">Camera</span>
           <select bind:value={facing}>
-            <option value="user">Front camera</option>
-            <option value="environment">Back camera</option>
+            <option value="user">Front cam</option>
+            <option value="environment">Back cam</option>
           </select>
         </label>
         <label>
           <span class="sr">Pose model</span>
           <select bind:value={variant}>
-            <option value="lite">Lite model, fastest</option>
+            <option value="lite">Lite model</option>
             <option value="full">Full model</option>
-            <option value="heavy">Heavy model, most accurate</option>
+            <option value="heavy">Heavy model</option>
           </select>
         </label>
       </div>
@@ -160,8 +157,8 @@
   <div class="bar">
     <button class="btn" onclick={stop}>Stop camera</button>
     <dl>
-      <div><dt>Frame rate</dt><dd class="num">{fps} fps</dd></div>
-      <div><dt>People in view</dt><dd class="num">{persons}</dd></div>
+      <div><dt>Speed</dt><dd class="num">{fps} fps</dd></div>
+      <div><dt>People</dt><dd class="num">{persons}</dd></div>
       <div><dt>Model</dt><dd>{info?.variant} on {info?.delegate}</dd></div>
     </dl>
   </div>
