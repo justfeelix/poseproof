@@ -8,11 +8,23 @@ down.
 It runs entirely in the browser with MediaPipe Pose. No video leaves the device; only body
 landmarks are kept, and only if you download them.
 
-> Status: work in progress. The app, the recording and replay pipeline, the evaluation
-> tooling and the first check are done; the remaining checks and the evaluation on real
-> recordings are being built now. Results below are filled in once measured.
+> Status: work in progress. Recording, review, the 3D view and the evaluation tooling are
+> done; the remaining checks, the trained lifter and the evaluation on real recordings are
+> being built. Results below are filled in once measured.
 
-**Live demo:** [PoseProof](https://poseproof.vercel.app/) · direct link to the demo trials: `/#replay`
+**Live:** [poseproof.vercel.app](https://poseproof.vercel.app/), demo trials at
+[/#review](https://poseproof.vercel.app/#review)
+
+## The app
+
+- **Record:** live skeleton over the camera, knee-bend readout, setup lights that say what
+  to fix before you start, optional live 3D. Press R to record.
+- **Review:** every recording is kept in your browser. 2D, 3D or both on one clock; a
+  timeline with knee bend, hip height and red bands where a check failed; click a failed
+  check to jump there; frame stepping and keyboard shortcuts (press ?).
+- **3D:** the skeleton on a lifting platform with a 50 cm grid; drag to orbit, scroll to
+  zoom, front, side and top views, hip path. The 3D comes from a lifter: MediaPipe's own 3D
+  today, a trained temporal lifter next ([docs/lifting.md](docs/lifting.md)).
 
 ## Why
 
@@ -83,6 +95,18 @@ cd ../analysis && pip install -r requirements.txt
 python -m poseproof_analysis.evaluate --split test --out ../results/eval_test.md
 ```
 
+## 2D-to-3D lifting
+
+Planned and scaffolded in [docs/lifting.md](docs/lifting.md): a VideoPose3D-style temporal
+network trained on AIST++ (split by dancer), evaluated with MPJPE and PA-MPJPE on held-out
+dancers and on own squats against a two-camera triangulated reference, exported to ONNX and
+compared with MediaPipe 3D side by side in the viewer.
+
+| Lifter | MPJPE AIST++ test | PA-MPJPE AIST++ test | MPJPE own squats |
+|---|---|---|---|
+| MediaPipe 3D | TODO | TODO | TODO |
+| Temporal lifter | TODO | TODO | TODO |
+
 ## Repository
 
 ```
@@ -91,8 +115,11 @@ web/                  Svelte + TypeScript app (Vite), deployed on Vercel
   src/lib/trial/      trial file format, recorder, samples
   src/lib/checks/     the checks, thresholds, helpers
   src/lib/synthetic/  stick-figure squats with injectable faults (for tests and demo)
+  src/lib/lifting/    2D-to-3D lifter interface
+  src/lib/viz/        3D scene (three.js), timeline signals, playback clock
   scripts/            make-samples, check-trials
-analysis/             Python: evaluation report, video export, two-camera 3D reference
+analysis/             Python: evaluation report, video export, two-camera 3D reference,
+                      temporal lifter (lifting/)
 data/                 local recordings and labels (not in git, except templates)
 docs/                 recording protocol, background, printable checkerboard
 ```
