@@ -168,23 +168,28 @@
   .hidden {
     visibility: hidden;
   }
+  /* Sized by the stage's own width (cqi), not the window's: with the 3D view on, the stage is
+     only a third of the window and the text used to overflow and get cut off at the top. */
   .intro {
     position: absolute;
     inset: 0;
+    container-type: inline-size;
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
-    gap: 0.9rem;
-    padding: clamp(1.25rem, 4vw, 2.5rem);
+    justify-content: safe flex-end;
+    gap: clamp(0.5rem, 2.5cqi, 0.9rem);
+    padding: clamp(1rem, 5cqi, 2.5rem);
+    overflow-y: auto;
     background: var(--stage);
   }
   .intro h2 {
-    font-size: clamp(var(--step-3), 5vw, var(--step-5));
+    font-size: clamp(1.4rem, 8.5cqi, var(--step-5));
     font-stretch: 125%;
     font-weight: 850;
     color: var(--lit);
   }
   .intro p {
+    font-size: clamp(0.85rem, 3.2cqi, 1rem);
     color: #c9c9c9;
     max-width: 46ch;
   }
