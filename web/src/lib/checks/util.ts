@@ -151,3 +151,55 @@ export function movingAverage(xs: number[], window: number): number[] {
 export function fraction<T>(items: T[], pred: (x: T) => boolean): number {
   return items.length ? items.filter(pred).length / items.length : 0
 }
+
+// ---------------------------------------------------------------- squat signals
+
+/**
+ * Standing height of one person in metres: vertical distance from the hip midpoint to the
+ * ankle midpoint. World coordinates have the hip midpoint as origin and y pointing down, so
+ * this is simply the mean ankle y. It shrinks when the person squats.
+ */
+export function standingHeight(p: PoseSample): number {
+  return (p.world[LM.left_ankle][1] + p.world[LM.right_ankle][1]) / 2
+}
+
+/** Standing height of the primary person per frame; null where nobody was detected. */
+export function heightSeries(frames: Frame[]): (number | null)[] {
+  return frames.map((f) => {
+    const p = primaryPose(f)
+    return p ? standingHeight(p) : null
+  })
+}
+
+/** Moving average over a series with gaps: nulls stay null, the other samples are smoothed. */
+export function smoothNullable(xs: (number | null)[], window: number): (number | null)[] {
+  const at: number[] = []
+  const values: number[] = []
+  xs.forEach((x, i) => {
+    if (x !== null) {
+      at.push(i)
+      values.push(x)
+    }
+  })
+  const smooth = movingAverage(values, window)
+  const out: (number | null)[] = xs.map(() => null)
+  at.forEach((i, k) => (out[i] = smooth[k]))
+  return out
+}
+
+/**
+ * The side of the body that faces the camera in a side-on test: the one whose hip, knee,
+ * ankle and heel have the higher median visibility. (The far side is hidden by the body.)
+ */
+export function nearerSide(frames: Frame[]): 'left' | 'right' {
+  const score = (side: 'left' | 'right') => {
+    const names = [`${side}_hip`, `${side}_knee`, `${side}_ankle`, `${side}_heel`] as LandmarkName[]
+    const vis: number[] = []
+    for (const f of frames) {
+      const p = primaryPose(f)
+      if (p) vis.push(mean(names.map((n) => p.image[LM[n]][3])))
+    }
+    return median(vis)
+  }
+  return score('right') > score('left') ? 'right' : 'left'
+}

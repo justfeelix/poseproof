@@ -35,6 +35,8 @@ export const DEFAULT_CONFIG = {
     maxBoneCv: 0.08,
     /** A frame-to-frame jump of a joint larger than this many metres counts as a glitch. */
     maxJumpM: 0.15,
+    /** Frames with such a jump that are tolerated (0 = none). Tune on real trials. */
+    maxJumpFrames: 0,
   },
   calmStart: {
     /** Length of the standing baseline at the start of the trial. */
@@ -43,7 +45,7 @@ export const DEFAULT_CONFIG = {
     maxHipStdM: 0.02,
   },
   depth: {
-    /** Knee flexion (0 = straight) the deepest rep must reach. */
+    /** Knee flexion (0 = straight) the typical rep (median of the per-rep peaks) must reach. */
     minKneeFlexionDeg: 90,
   },
   heels: {

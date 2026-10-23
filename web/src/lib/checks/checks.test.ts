@@ -6,8 +6,11 @@
  * only a sanity check: the real evaluation is on labelled recordings (GUIDE.md, step 10).
  */
 import { describe, expect, it } from 'vitest'
+import { LM } from '../pose/landmarks'
 import type { Point4 } from '../pose/types'
 import { SYNTHETIC_CASES, syntheticSquat, type SquatOptions } from '../synthetic/squat'
+import { baselineFrames } from './calmStart'
+import { findReps } from './tempo'
 import { CHECK_BY_ID, CHECKS, DEFAULT_CONFIG, evaluateLive, evaluateTrial, type CheckId } from './index'
 
 /** Which synthetic fault each check must catch (visibility has none: test it on real data). */
@@ -121,5 +124,101 @@ describe('orientation details', () => {
     expect(r.value).toBeGreaterThan(35)
     expect(r.value).toBeLessThan(45)
     expect(r.spans?.length).toBeGreaterThan(0)
+  })
+})
+
+describe('rep detection and tempo', () => {
+  it('findReps finds exactly 3 reps in the clean trial, with plausible descents', () => {
+    const reps = findReps(syntheticSquat(SYNTHETIC_CASES.CLEAN).frames, DEFAULT_CONFIG)
+    expect(reps).toHaveLength(3)
+    for (const r of reps) {
+      const descentS = (r.bottom - r.start) / 1000
+      expect(descentS).toBeGreaterThan(0.7) // true descent 1.4 s; the start is the last moment near standing and the bottom is a noisy argmin on a flat plateau
+      expect(descentS).toBeLessThan(1.7)
+    }
+  })
+
+  it('finds no reps when the person only stands', () => {
+    expect(findReps(syntheticSquat({ reps: 0 }).frames, DEFAULT_CONFIG)).toEqual([])
+    expect(run('tempo', { reps: 0 }).detail).toContain('no reps')
+  })
+
+  it('marks the too fast descents on the timeline', () => {
+    const r = run('tempo', SYNTHETIC_CASES.TOO_FAST)
+    expect(r.status).toBe('fail')
+    expect(r.spans).toHaveLength(3)
+    expect(r.value).toBeLessThan(0.6)
+  })
+})
+
+describe('depth, heels, calm start, stability details', () => {
+  it('depth measures about the injected knee flexion', () => {
+    expect(run('depth', SYNTHETIC_CASES.CLEAN).value).toBeGreaterThan(98)
+    expect(run('depth', SYNTHETIC_CASES.CLEAN).value).toBeLessThan(110)
+    expect(run('depth', SYNTHETIC_CASES.DEPTH_NOT_REACHED).value).toBeLessThan(55)
+  })
+
+  it('depth uses the near leg in the side test', () => {
+    const r = run('depth', { ...SYNTHETIC_CASES.CLEAN, test: 'squat_side' })
+    expect(r.status).toBe('pass')
+    expect(r.value).toBeGreaterThan(98)
+  })
+
+  it('heels measures about the injected lift, in front and side test', () => {
+    for (const test of ['squat_front', 'squat_side'] as const) {
+      const r = run('heels', { ...SYNTHETIC_CASES.HEEL_LIFT, test })
+      expect(r.status).toBe('fail')
+      expect(r.value).toBeGreaterThan(0.04)
+      expect(r.value).toBeLessThan(0.055)
+      expect(r.spans?.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('calm_start fails when the trial is too short to know', () => {
+    const trial = syntheticSquat(SYNTHETIC_CASES.CLEAN)
+    const r = CHECK_BY_ID.calm_start.run(trial.frames.slice(0, 5), { test: trial.test, config: DEFAULT_CONFIG })
+    expect(r.status).toBe('fail')
+    expect(r.detail).toContain('too short')
+    expect(baselineFrames(trial.frames, DEFAULT_CONFIG).length).toBe(45)
+  })
+
+  it('calm_start reports where the person moved', () => {
+    expect(run('calm_start', SYNTHETIC_CASES.NO_CALM_START).spans).toHaveLength(1)
+  })
+
+  it('stability shows where the tracker jumped', () => {
+    const r = run('stability', SYNTHETIC_CASES.TRACKING_UNSTABLE)
+    expect(r.status).toBe('fail')
+    expect(r.spans?.length).toBeGreaterThan(0)
+  })
+
+  it('stability survives short dropouts of the tracker', () => {
+    expect(run('stability', { dropoutFrames: 10 }).status).toBe('pass')
+  })
+})
+
+describe('visibility details', () => {
+  /** CLEAN trial with one landmark's visibility forced low in every frame. */
+  const hide = (test: 'squat_front' | 'squat_side', name: keyof typeof LM) => {
+    const trial = syntheticSquat({ ...SYNTHETIC_CASES.CLEAN, test })
+    const frames = trial.frames.map((f) => ({
+      ...f,
+      poses: f.poses.map((p) => ({ ...p, image: p.image.map((pt, i) => (i === LM[name] ? ([pt[0], pt[1], pt[2], 0.1] as Point4) : pt)) })),
+    }))
+    return CHECK_BY_ID.visibility.run(frames, { test, config: DEFAULT_CONFIG })
+  }
+
+  it('fails when a leg joint is hidden in the front test and names it', () => {
+    const r = hide('squat_front', 'left_knee')
+    expect(r.status).toBe('fail')
+    expect(r.detail).toContain('left_knee')
+  })
+
+  it('fails when a near-side joint is hidden in the side test', () => {
+    expect(hide('squat_side', 'right_ankle').status).toBe('fail')
+  })
+
+  it('ignores the far side in the side test', () => {
+    expect(hide('squat_side', 'left_ankle').status).toBe('pass')
   })
 })
