@@ -6,6 +6,7 @@
  * only a sanity check: the real evaluation is on labelled recordings (GUIDE.md, step 10).
  */
 import { describe, expect, it } from 'vitest'
+import type { Point4 } from '../pose/types'
 import { SYNTHETIC_CASES, syntheticSquat, type SquatOptions } from '../synthetic/squat'
 import { CHECK_BY_ID, CHECKS, DEFAULT_CONFIG, evaluateLive, evaluateTrial, type CheckId } from './index'
 
@@ -73,5 +74,33 @@ describe('verdict', () => {
   it('live mode only runs live checks', () => {
     const v = evaluateLive(syntheticSquat({ durationS: 1 }).frames, 'squat_front')
     expect(v.results.every((r) => CHECK_BY_ID[r.id].live)).toBe(true)
+  })
+})
+
+describe('one_person details', () => {
+  /** CLEAN trial plus a second person on the right, scaled by `scale` (box area ~ scale squared). */
+  const withBystander = (scale: number) => {
+    const trial = syntheticSquat(SYNTHETIC_CASES.CLEAN)
+    const frames = trial.frames.map((f) => {
+      const p = f.poses[0]
+      const image = p.image.map(([x, y, z, v]) => [0.85 + (x - 0.5) * scale, 0.5 + (y - 0.5) * scale, z, v] as Point4)
+      return { ...f, poses: [p, { ...p, image }] }
+    })
+    return CHECK_BY_ID.one_person.run(frames, { test: trial.test, config: DEFAULT_CONFIG })
+  }
+
+  it('ignores a tiny detection in the background', () => {
+    expect(withBystander(0.3).status).toBe('pass')
+  })
+
+  it('fails on a full-size bystander and reports when', () => {
+    const r = withBystander(0.8)
+    expect(r.status).toBe('fail')
+    expect(r.spans?.length).toBeGreaterThan(0)
+  })
+
+  it('reports the start of the second person for MULTI_PERSON', () => {
+    const r = run('one_person', SYNTHETIC_CASES.MULTI_PERSON)
+    expect(r.detail).toContain('from 5.0 s')
   })
 })

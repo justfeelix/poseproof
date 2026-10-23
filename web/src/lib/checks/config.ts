@@ -15,6 +15,8 @@ export const DEFAULT_CONFIG = {
   onePerson: {
     /** Share of frames allowed to contain a second person. */
     maxFrameFraction: 0.05,
+    /** A detection counts as a person only if its box is at least this share of the tested person's (median) box area. */
+    minAreaRatio: 0.25,
   },
   orientation: {
     /** Front test: max angle between the shoulder/hip line and the image plane. */
