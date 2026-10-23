@@ -5,6 +5,7 @@
   import JudgeLights from './JudgeLights.svelte'
   import Skeleton3D from './Skeleton3D.svelte'
   import { app } from '../lib/app.svelte'
+  import { beep, unlockAudio } from '../lib/audio'
   import { evaluateLive, type Verdict } from '../lib/checks'
   import { jointAngleDeg, primaryPose } from '../lib/checks/util'
   import type { Joint3 } from '../lib/lifting'
@@ -24,6 +25,9 @@
   let test = $state<TestKind>('squat_front')
   let durationS = $state(20)
   let countdown = $state(0)
+  /** Seconds between pressing Record and the start, to walk into position. Remembered per browser. */
+  let delayS = $state(readNumber('poseproof.delayS', 5))
+  let sound = $state(readNumber('poseproof.sound', 1) === 1)
   let elapsedS = $state(0)
   let live = $state<Verdict | null>(null)
   let show3d = $state(false)
@@ -37,32 +41,65 @@
   let lastLive = 0
 
   const busy = $derived(phase !== 'ready')
+
+  function readNumber(key: string, fallback: number): number {
+    try {
+      const v = localStorage.getItem(key)
+      return v === null ? fallback : Number(v)
+    } catch {
+      return fallback
+    }
+  }
+
+  $effect(() => {
+    try {
+      localStorage.setItem('poseproof.delayS', String(delayS))
+      localStorage.setItem('poseproof.sound', sound ? '1' : '0')
+    } catch {
+      // storage blocked (private mode): the choice just is not remembered
+    }
+  })
   const blocked = $derived(!!live && live.results.some((r) => r.status === 'fail'))
 
+  /** The recording itself starts here (after the countdown, or at once with no delay). */
+  function begin() {
+    if (!lastCtx) {
+      phase = 'ready'
+      return
+    }
+    recorder.start({
+      test,
+      model: lastCtx.model,
+      image: { width: lastCtx.width, height: lastCtx.height },
+      mirrored: lastCtx.mirrored,
+    })
+    elapsedS = 0
+    phase = 'recording'
+    if (sound) beep(990, 450)
+  }
+
+  /** Record pressed: count down delayS seconds (short beeps in the last 3), then begin(). */
   function startTest() {
+    if (sound) unlockAudio() // must happen inside the click / key press
+    if (delayS <= 0) return begin()
     phase = 'countdown'
-    countdown = 3
+    countdown = delayS
+    if (sound && countdown <= 3) beep(660, 120)
     timer = setInterval(() => {
       countdown -= 1
       if (countdown <= 0) {
         clearInterval(timer)
-        if (!lastCtx) {
-          phase = 'ready'
-          return
-        }
-        recorder.start({
-          test,
-          model: lastCtx.model,
-          image: { width: lastCtx.width, height: lastCtx.height },
-          mirrored: lastCtx.mirrored,
-        })
-        elapsedS = 0
-        phase = 'recording'
-      }
+        begin()
+      } else if (sound && countdown <= 3) beep(660, 120)
     }, 1000)
   }
 
   async function finish() {
+    if (phase !== 'recording') return
+    if (sound) {
+      beep(990, 150)
+      beep(990, 150, 0.22)
+    }
     const trial = recorder.stop()
     if (!trial) {
       phase = 'ready'
@@ -139,6 +176,20 @@
       <option value={30}>30 s</option>
     </select>
   </label>
+  <label>
+    <span class="sr">Start delay</span>
+    <select bind:value={delayS} disabled={busy} title="Time to walk into position after pressing Record">
+      <option value={0}>Start now</option>
+      <option value={3}>Start in 3 s</option>
+      <option value={5}>Start in 5 s</option>
+      <option value={10}>Start in 10 s</option>
+      <option value={15}>Start in 15 s</option>
+    </select>
+  </label>
+  <label class="chk" title="Beep on the last 3 seconds, at the start and at the end">
+    <input type="checkbox" bind:checked={sound} />
+    Beep
+  </label>
   <label class="chk">
     <input type="checkbox" bind:checked={show3d} />
     3D
@@ -158,7 +209,10 @@
   <div class="cam">
     <CameraPose {onframe} {onrunning}>
       {#if phase === 'countdown'}
-        <div class="count num" aria-live="assertive">{countdown}</div>
+        <div class="count" aria-live="assertive">
+          <span class="num">{countdown}</span>
+          <small>Get into position</small>
+        </div>
       {:else if phase === 'recording'}
         <div class="recpill">
           <span class="blink" aria-hidden="true"></span>
@@ -197,7 +251,7 @@
       <p class="hint">Hip-height camera, 2 to 3 m away. Whole body inside the corner marks.</p>
     {/if}
     <dl class="keys">
-      <dt>R</dt><dd>Record</dd>
+      <dt>R</dt><dd>Record (after the start delay)</dd>
       <dt>Esc</dt><dd>Cancel</dd>
     </dl>
   </aside>
@@ -334,12 +388,22 @@
   .count {
     position: absolute;
     inset: 0;
-    display: grid;
-    place-items: center;
-    font-size: clamp(6rem, 22vw, 14rem);
-    font-weight: 900;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    container-type: size;
     color: var(--lit);
     text-shadow: 0 4px 30px rgba(0, 0, 0, 0.6);
+  }
+  .count span {
+    font-size: clamp(4rem, 55cqh, 14rem);
+    font-weight: 900;
+    line-height: 1;
+  }
+  .count small {
+    font-size: clamp(0.9rem, 6cqh, 1.6rem);
+    font-weight: 700;
   }
   .recpill {
     position: absolute;
