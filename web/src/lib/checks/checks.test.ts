@@ -104,3 +104,22 @@ describe('one_person details', () => {
     expect(r.detail).toContain('from 5.0 s')
   })
 })
+
+describe('orientation details', () => {
+  it('lets a small turn pass in the front test', () => {
+    expect(run('orientation', { yawDeg: 15 }).status).toBe('pass')
+  })
+
+  it('fails in the side test when the person faces the camera', () => {
+    const r = run('orientation', { test: 'squat_side', yawDeg: -90 })
+    expect(r.status).toBe('fail')
+    expect(r.value).toBeLessThan(10)
+  })
+
+  it('measures about the injected turn and reports spans when wrong', () => {
+    const r = run('orientation', SYNTHETIC_CASES.WRONG_ORIENTATION)
+    expect(r.value).toBeGreaterThan(35)
+    expect(r.value).toBeLessThan(45)
+    expect(r.spans?.length).toBeGreaterThan(0)
+  })
+})
