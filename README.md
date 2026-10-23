@@ -8,9 +8,11 @@ down.
 It runs entirely in the browser with MediaPipe Pose. No video leaves the device; only body
 landmarks are kept, and only if you download them.
 
-> Status: work in progress. Recording, review, the 3D view and the evaluation tooling are
-> done; the remaining checks, the trained lifter and the evaluation on real recordings are
-> being built. Results below are filled in once measured.
+> Status: work in progress. Recording, review, the 3D view, all nine checks and the
+> evaluation tooling are done. The checks are unit-tested on synthetic trials with injected
+> faults; they have not been evaluated on real recordings yet, and every threshold is a
+> starting guess. The trained lifter and the evaluation on real recordings are being built.
+> Results below are filled in once measured.
 
 **Live:** [poseproof.vercel.app](https://poseproof.vercel.app/), demo trials at
 [/#review](https://poseproof.vercel.app/#review)
@@ -18,7 +20,8 @@ landmarks are kept, and only if you download them.
 ## The app
 
 - **Record:** live skeleton over the camera, knee-bend readout, setup lights that say what
-  to fix before you start, optional live 3D. Press R to record.
+  to fix before you start, optional live 3D. Press R (or the button) and walk into position:
+  a start delay of up to 15 s counts down with beeps, and a double beep marks the end.
 - **Review:** every recording is kept in your browser. 2D, 3D or both on one clock; a
   timeline with knee bend, hip height and red bands where a check failed; click a failed
   check to jump there; frame stepping and keyboard shortcuts (press ?).
